@@ -1,0 +1,329 @@
+{
+  "$comment": "Rules used by 'emb3d-wb scan' to turn Yocto build outputs and CycloneDX SBOMs into a Workbench project. See README, section 'Yocto scanner rules'.",
+  "version": "0.1",
+  "components": [
+    {
+      "id": "soc", "type": "soc", "name": "${MACHINE} SoC",
+      "when": { "var": "MACHINE", "set": true },
+      "answers": {
+        "shared_mem": [
+          { "if": { "var": "MACHINE_FEATURES", "re": "\\b(gpu|vpu|npu)\\b" }, "value": true },
+          { "if": { "var": "MACHINEOVERRIDES", "re": "\\b(tegra|imx|mx8|rk3|rockchip|rpi|raspberrypi|bcm2|k3|am6|zynq|stm32mp)" }, "value": true },
+          { "value": true, "review": "assumed: application SoCs have GPU/DMA bus masters sharing DRAM" }
+        ]
+      }
+    },
+    {
+      "id": "dram", "type": "dram", "name": "RAM",
+      "when": { "var": "MACHINE", "set": true },
+      "answers": { "ddr": [ { "value": true, "review": "memory type is a hardware fact" } ] }
+    },
+    {
+      "id": "storage", "type": "storage", "name": "Boot storage",
+      "when": { "var": "MACHINE", "set": true },
+      "answers": {
+        "removable": [
+          { "if": { "var": "IMAGE_FSTYPES", "re": "\\b(rpi-sdimg|sdcard|sdimg)\\b" }, "value": true },
+          { "if": { "var": "MACHINEOVERRIDES", "re": "\\b(rpi|raspberrypi)\\b" }, "value": true, "review": "Raspberry Pi boards boot from a microSD card unless an eMMC module (CM4/CM5) is used" },
+          { "if": { "var": "MACHINE", "re": "nvme|emmc" }, "value": false, "review": "storage medium inferred from the machine name" },
+          { "value": false, "review": "boot medium (eMMC, SD, NVMe) is not visible in the build outputs" }
+        ]
+      }
+    },
+    {
+      "id": "debug", "type": "debug", "name": "Serial console",
+      "when": { "any": [
+        { "var": "SERIAL_CONSOLES", "set": true },
+        { "exists": "/etc/systemd/system/getty.target.wants/serial-getty@*.service" },
+        { "file": "/etc/inittab", "re": "^[^#].*getty.*tty(S|AMA|mxc|TCU|PS|LP)" }
+      ] },
+      "answers": {
+        "sw_debug": [
+          { "if": { "var": "IMAGE_FEATURES", "re": "\\b(debug-tweaks|allow-empty-password|empty-root-password|allow-root-login|tools-debug|tools-profile|dbg-pkgs)\\b" }, "value": true },
+          { "if": { "pkg": "gdbserver|strace|ltrace|valgrind|perf" }, "value": true },
+          { "if": { "uboot": "CONFIG_BOOTDELAY", "eq": "-2" }, "value": false, "review": "bootloader shell disabled; check that the console login is also disabled in production" },
+          { "if": { "var": "SERIAL_CONSOLES", "set": true }, "value": true, "review": "login console on the serial port; is it reachable on the production enclosure?" },
+          { "value": true, "review": "debug access not determined" }
+        ]
+      }
+    },
+    {
+      "id": "usb", "type": "periph", "name": "USB",
+      "when": { "any": [ { "var": "MACHINE_FEATURES", "word": "usbhost" }, { "var": "MACHINE_FEATURES", "word": "usbgadget" }, { "kconfig": "CONFIG_USB_SUPPORT", "eq": "y" } ] },
+      "review": "is the USB port reachable on the enclosure?"
+    },
+    {
+      "id": "can", "type": "periph", "name": "CAN bus",
+      "when": { "any": [ { "var": "MACHINE_FEATURES", "word": "can" }, { "kconfig": "CONFIG_CAN", "re": "^[ym]$" } ] },
+      "review": "is the CAN bus reachable from outside the device?"
+    },
+    {
+      "id": "tpm", "type": "rot", "name": "TPM 2.0",
+      "when": { "any": [ { "var": "DISTRO_FEATURES", "re": "\\btpm2?\\b" }, { "var": "MACHINE_FEATURES", "re": "\\btpm2?\\b" }, { "pkg": "tpm2-tss|libtss2.*|tpm2-tools|tpm2-abrmd" }, { "kconfig": "CONFIG_TCG_TPM", "re": "^[ym]$" } ] },
+      "answers": { "rot_kind": [ { "value": "mutable", "review": "a discrete TPM on a board bus is physically accessible; set Immutable if the chain is anchored in boot ROM and fuses" } ] }
+    },
+    {
+      "id": "optee", "type": "rot", "name": "OP-TEE",
+      "when": { "any": [ { "var": "MACHINE_FEATURES", "word": "optee" }, { "pkg": "optee-os.*|optee-client" } ] },
+      "answers": { "rot_kind": [ { "value": "immutable", "review": "OP-TEE is only as strong as the secure boot that loads it; confirm the boot ROM verifies it" } ] }
+    },
+    {
+      "id": "uboot", "type": "bootloader", "name": "U-Boot", "version": "u-boot.*",
+      "when": { "any": [ { "var": "PREFERRED_PROVIDER_virtual/bootloader", "re": "^u-boot" }, { "pkg": "u-boot.*" } ] },
+      "answers": {
+        "verify": [
+          { "if": { "var": "UBOOT_SIGN_ENABLE", "eq": "1" }, "value": "signature" },
+          { "if": { "all": [ { "uboot": "CONFIG_FIT_SIGNATURE", "eq": "y" }, { "uboot": "CONFIG_RSA", "eq": "y" } ] }, "value": "signature", "review": "FIT signature support is built in; confirm the key is marked required" },
+          { "if": { "var": "FIT_SIGN_INDIVIDUAL", "set": true }, "value": "signature" },
+          { "value": "none", "review": "no FIT signing configuration found" }
+        ]
+      }
+    },
+    {
+      "id": "barebox", "type": "bootloader", "name": "barebox", "version": "barebox.*",
+      "when": { "any": [ { "var": "PREFERRED_PROVIDER_virtual/bootloader", "re": "^barebox" }, { "pkg": "barebox.*" } ] },
+      "answers": {
+        "verify": [
+          { "if": { "uboot": "CONFIG_FITIMAGE_SIGNATURE", "eq": "y" }, "value": "signature" },
+          { "value": "none", "review": "no barebox FIT signature configuration found (pass barebox .config with --uboot-config)" }
+        ]
+      }
+    },
+    {
+      "id": "uefi", "type": "bootloader", "name": "UEFI firmware", "version": "edk2.*",
+      "when": { "any": [ { "pkg": "edk2-firmware.*|edk2-firmware-tegra" }, { "var": "MACHINE_FEATURES", "word": "efi" }, { "var": "EFI_PROVIDER", "set": true } ] },
+      "answers": {
+        "verify": [
+          { "if": { "any": [ { "var": "UEFI_SB", "eq": "1" }, { "var": "TEGRA_UEFI_DB_KEY", "set": true }, { "var": "SECURE_BOOT_SIGNING_KEY", "set": true }, { "var": "UEFI_SIGN_ENABLE", "eq": "1" } ] }, "value": "signature" },
+          { "value": "none", "review": "no UEFI Secure Boot keys found in the build configuration" }
+        ]
+      }
+    },
+    {
+      "id": "kernel", "type": "os", "name": "${PREFERRED_PROVIDER_virtual/kernel}", "version": "linux-.*|kernel",
+      "when": { "any": [ { "var": "PREFERRED_PROVIDER_virtual/kernel", "set": true }, { "pkg": "kernel-image.*|linux-.*" } ] },
+      "answers": {
+        "modules": [
+          { "if": { "kconfig": "CONFIG_MODULES", "eq": "y" }, "value": true },
+          { "if": { "kconfig": "CONFIG_MODULES", "eq": "n" }, "value": false },
+          { "if": { "pkg": "kernel-module-.*" }, "value": true },
+          { "value": true, "review": "kernel .config not provided" }
+        ],
+        "separation": [
+          { "if": { "var": "DISTRO_FEATURES", "re": "\\b(selinux|apparmor|smack)\\b" }, "value": "accounts" },
+          { "if": { "var": "IMAGE_FEATURES", "re": "\\b(debug-tweaks|empty-root-password)\\b" }, "value": "none", "review": "root has no password; services' users not checked" },
+          { "if": { "file": "/etc/passwd", "re": "^(?!root:)[a-z_][a-z0-9_-]*:[^:]*:[1-9][0-9]{2,}:" }, "value": "accounts" },
+          { "value": "accounts", "review": "assumed: Linux user separation; check which users the services run as" }
+        ],
+        "mmu": [
+          { "if": { "kconfig": "CONFIG_MMU", "eq": "y" }, "value": true },
+          { "if": { "kconfig": "CONFIG_MMU", "eq": "n" }, "value": false },
+          { "if": { "var": "TUNE_FEATURES", "re": "\\b(aarch64|armv7a|armv8|x86-64|m64|rv64)" }, "value": true },
+          { "value": true, "review": "assumed: Linux on an MMU architecture" }
+        ],
+        "containers": [
+          { "if": { "pkg": "docker.*|podman|containerd.*|runc.*|crun|lxc|incus|balena-engine" }, "value": true },
+          { "value": false }
+        ],
+        "hypervisor": [
+          { "if": { "any": [ { "var": "DISTRO_FEATURES", "re": "\\b(xen|kvm)\\b" }, { "pkg": "xen.*|jailhouse.*|qemu-system.*" } ] }, "value": true },
+          { "value": false }
+        ],
+        "syslog": [
+          { "if": { "pkg": "rsyslog|syslog-ng|busybox-syslog|sysklogd|systemd|systemd-journald" }, "value": true },
+          { "value": false, "review": "no logging daemon found" }
+        ]
+      }
+    },
+    {
+      "id": "rauc", "type": "update", "name": "RAUC", "version": "rauc",
+      "when": { "pkg": "rauc(-service)?" },
+      "answers": {
+        "integrity": [
+          { "if": { "file": "/etc/rauc/system.conf", "re": "^\\s*\\[keyring\\]" }, "value": "signature" },
+          { "value": "signature", "review": "RAUC always verifies bundle signatures, but no [keyring] was found in /etc/rauc/system.conf" }
+        ],
+        "plaintext": [
+          { "if": { "file": "/etc/rauc/system.conf", "re": "^\\s*\\[encryption\\]" }, "value": false },
+          { "if": { "var": "RAUC_BUNDLE_FORMAT", "re": "crypt" }, "value": false },
+          { "value": true }
+        ],
+        "pick_version": [ { "value": true, "review": "RAUC installs any validly signed bundle unless a hook compares versions" } ],
+        "remote": [
+          { "if": { "pkg": "rauc-hawkbit.*" }, "value": true },
+          { "value": false, "review": "no remote update client found; check for a custom one" }
+        ]
+      }
+    },
+    {
+      "id": "swupdate", "type": "update", "name": "SWUpdate", "version": "swupdate",
+      "when": { "pkg": "swupdate" },
+      "answers": {
+        "integrity": [
+          { "if": { "file": "/etc/swupdate/conf.d/*|/usr/lib/swupdate/conf.d/*|/etc/default/swupdate", "re": "(\\s-k\\s|--key)" }, "value": "signature" },
+          { "if": { "exists": "/etc/swupdate-public.pem|/etc/swupdate/public.pem|/usr/share/swupdate/public.pem" }, "value": "signature", "review": "a public key ships in the image; confirm CONFIG_SIGNED_IMAGES and that the key is passed to swupdate" },
+          { "value": "none", "review": "no signing key found; SWUpdate only checks hashes unless built with CONFIG_SIGNED_IMAGES" }
+        ],
+        "plaintext": [
+          { "if": { "file": "/etc/swupdate/conf.d/*|/usr/lib/swupdate/conf.d/*|/etc/default/swupdate", "re": "(\\s-K\\s|--key-aes)" }, "value": false },
+          { "value": true }
+        ],
+        "pick_version": [
+          { "if": { "file": "/etc/swupdate/conf.d/*|/usr/lib/swupdate/conf.d/*|/etc/default/swupdate", "re": "(\\s-N\\s|--no-downgrading)" }, "value": false },
+          { "value": true, "review": "no --no-downgrading found in the SWUpdate arguments" }
+        ],
+        "remote": [
+          { "if": { "file": "/etc/swupdate.cfg", "re": "^\\s*suricatta\\s*:" }, "value": true },
+          { "if": { "file": "/etc/swupdate/conf.d/*|/usr/lib/swupdate/conf.d/*|/etc/default/swupdate", "re": "(\\s-w\\s|--webserver|\\s-u\\s|--suricatta)" }, "value": true },
+          { "value": false, "review": "no SWUpdate web server or suricatta configuration found" }
+        ]
+      }
+    },
+    {
+      "id": "mender", "type": "update", "name": "Mender", "version": "mender.*",
+      "when": { "pkg": "mender|mender-client|mender-update|mender-auth" },
+      "answers": {
+        "integrity": [
+          { "if": { "file": "/etc/mender/mender.conf", "re": "ArtifactVerifyKey" }, "value": "signature" },
+          { "value": "none", "review": "no ArtifactVerifyKey in mender.conf: artifacts are not signature-checked" }
+        ],
+        "plaintext": [ { "value": true } ],
+        "pick_version": [ { "value": true, "review": "check artifact version dependencies (provides/depends)" } ],
+        "remote": [ { "value": true } ]
+      }
+    },
+    {
+      "id": "ostree", "type": "update", "name": "OSTree", "version": "ostree",
+      "when": { "pkg": "ostree|aktualizr.*" },
+      "answers": {
+        "integrity": [
+          { "if": { "any": [ { "var": "OSTREE_GPGID", "set": true }, { "file": "/etc/ostree/remotes.d/*", "re": "(gpg-verify\\s*=\\s*true|sign-verify)" }, { "pkg": "aktualizr.*" } ] }, "value": "signature" },
+          { "value": "none", "review": "no OSTree commit signature verification found" }
+        ],
+        "plaintext": [ { "value": true } ],
+        "pick_version": [
+          { "if": { "pkg": "aktualizr.*" }, "value": false },
+          { "value": true, "review": "OSTree can deploy older commits unless the update client prevents it" }
+        ],
+        "remote": [ { "if": { "pkg": "aktualizr.*" }, "value": true }, { "value": true, "review": "pull-based updates from a remote; confirm" } ]
+      }
+    },
+    {
+      "id": "openssh", "type": "netsvc", "name": "OpenSSH server", "version": "openssh(-sshd)?",
+      "when": { "any": [ { "pkg": "openssh-sshd|openssh" }, { "var": "IMAGE_FEATURES", "word": "ssh-server-openssh" } ] },
+      "answers": {
+        "sensitive": [ { "value": true } ], "no_auth": [ { "value": false } ], "no_enc": [ { "value": false } ], "crypto": [ { "value": true } ],
+        "route": [ { "if": { "file": "/etc/sysctl.conf|/etc/sysctl.d/*|/usr/lib/sysctl.d/*", "re": "^\\s*net\\.ipv4\\.ip_forward\\s*=\\s*1" }, "value": true }, { "value": false } ]
+      }
+    },
+    {
+      "id": "openssh-login", "type": "ui", "name": "SSH login",
+      "when": { "any": [ { "pkg": "openssh-sshd|openssh" }, { "var": "IMAGE_FEATURES", "word": "ssh-server-openssh" } ] },
+      "answers": {
+        "auth": [
+          { "if": { "any": [ { "var": "IMAGE_FEATURES", "re": "\\b(debug-tweaks|empty-root-password|allow-empty-password)\\b" }, { "file": "/etc/shadow", "re": "^root::" }, { "file": "/etc/ssh/sshd_config", "re": "^\\s*PermitEmptyPasswords\\s+yes" } ] }, "value": "none" },
+          { "if": { "file": "/etc/ssh/sshd_config|/etc/ssh/sshd_config.d/*", "re": "^\\s*PasswordAuthentication\\s+no" }, "value": "crypto" },
+          { "value": "password", "review": "OpenSSH allows password login by default; check sshd_config" }
+        ]
+      }
+    },
+    {
+      "id": "dropbear", "type": "netsvc", "name": "Dropbear SSH server", "version": "dropbear",
+      "when": { "any": [ { "pkg": "dropbear" }, { "var": "IMAGE_FEATURES", "word": "ssh-server-dropbear" } ] },
+      "answers": { "sensitive": [ { "value": true } ], "no_auth": [ { "value": false } ], "no_enc": [ { "value": false } ], "crypto": [ { "value": true } ], "route": [ { "value": false } ] }
+    },
+    {
+      "id": "dropbear-login", "type": "ui", "name": "SSH login (Dropbear)",
+      "when": { "any": [ { "pkg": "dropbear" }, { "var": "IMAGE_FEATURES", "word": "ssh-server-dropbear" } ] },
+      "answers": {
+        "auth": [
+          { "if": { "any": [ { "var": "IMAGE_FEATURES", "re": "\\b(debug-tweaks|empty-root-password|allow-empty-password)\\b" }, { "file": "/etc/shadow", "re": "^root::" } ] }, "value": "none" },
+          { "if": { "file": "/etc/default/dropbear", "re": "-s\\b" }, "value": "crypto" },
+          { "value": "password", "review": "Dropbear allows password login unless started with -s" }
+        ]
+      }
+    },
+    {
+      "id": "mosquitto", "type": "netsvc", "name": "Mosquitto MQTT broker", "version": "mosquitto",
+      "when": { "pkg": "mosquitto" },
+      "answers": {
+        "sensitive": [ { "value": true, "review": "what the broker carries is product-specific" } ],
+        "no_auth": [
+          { "if": { "file": "/etc/mosquitto/mosquitto.conf|/etc/mosquitto/conf.d/*", "re": "^\\s*allow_anonymous\\s+true" }, "value": true },
+          { "if": { "file": "/etc/mosquitto/mosquitto.conf|/etc/mosquitto/conf.d/*", "re": "^\\s*(password_file|require_certificate\\s+true)" }, "value": false },
+          { "value": true, "review": "no broker authentication configuration found" }
+        ],
+        "no_enc": [
+          { "if": { "file": "/etc/mosquitto/mosquitto.conf|/etc/mosquitto/conf.d/*", "re": "^\\s*certfile\\s" }, "value": false },
+          { "value": true, "review": "no TLS listener configuration found" }
+        ],
+        "crypto": [
+          { "if": { "file": "/etc/mosquitto/mosquitto.conf|/etc/mosquitto/conf.d/*", "re": "^\\s*certfile\\s" }, "value": true },
+          { "value": false }
+        ],
+        "route": [ { "value": false } ]
+      }
+    },
+    {
+      "id": "webserver", "type": "netsvc", "name": "Web server", "version": "lighttpd|nginx|apache2|boa|cockpit.*",
+      "when": { "pkg": "lighttpd|nginx|apache2|boa|cockpit.*" },
+      "answers": {
+        "sensitive": [ { "value": true, "review": "what the web server exposes is product-specific" } ],
+        "no_auth": [ { "value": false, "review": "authentication depends on the served application" } ],
+        "no_enc": [
+          { "if": { "file": "/etc/lighttpd.conf|/etc/lighttpd/*|/etc/nginx/nginx.conf|/etc/nginx/sites-enabled/*|/etc/nginx/conf.d/*", "re": "(ssl\\.engine\\s*=\\s*\"enable\"|listen\\s+.*ssl|ssl_certificate)" }, "value": false },
+          { "value": true, "review": "no TLS configuration found" }
+        ],
+        "crypto": [
+          { "if": { "file": "/etc/lighttpd.conf|/etc/lighttpd/*|/etc/nginx/nginx.conf|/etc/nginx/sites-enabled/*|/etc/nginx/conf.d/*", "re": "(ssl\\.engine\\s*=\\s*\"enable\"|listen\\s+.*ssl|ssl_certificate)" }, "value": true },
+          { "value": false }
+        ],
+        "route": [ { "value": false } ]
+      }
+    },
+    {
+      "id": "webui", "type": "ui", "name": "Web interface",
+      "when": { "pkg": "lighttpd|nginx|apache2|boa|cockpit.*" },
+      "answers": { "auth": [ { "value": "password", "review": "authentication depends on the served application" } ] }
+    },
+    {
+      "id": "avahi", "type": "netsvc", "name": "Avahi mDNS", "version": "avahi-daemon|avahi",
+      "when": { "pkg": "avahi-daemon|avahi" },
+      "answers": { "sensitive": [ { "value": false } ], "no_auth": [ { "value": true } ], "no_enc": [ { "value": true } ], "crypto": [ { "value": false } ], "route": [ { "value": false } ] }
+    },
+    {
+      "id": "snmpd", "type": "netsvc", "name": "SNMP agent", "version": "net-snmp.*",
+      "when": { "pkg": "net-snmp-server.*|net-snmp" },
+      "answers": {
+        "sensitive": [ { "value": true } ],
+        "no_auth": [ { "if": { "file": "/etc/snmp/snmpd.conf", "re": "^\\s*(rocommunity|rwcommunity)" }, "value": true }, { "value": false, "review": "check for SNMPv1/v2c communities" } ],
+        "no_enc": [ { "if": { "file": "/etc/snmp/snmpd.conf", "re": "^\\s*(rocommunity|rwcommunity)" }, "value": true }, { "value": false, "review": "check for SNMPv3 privacy" } ],
+        "crypto": [ { "value": false, "review": "SNMPv3 with privacy?" } ],
+        "route": [ { "value": false } ]
+      }
+    },
+    {
+      "id": "node-red", "type": "runtime", "name": "Node-RED", "version": "node-red",
+      "when": { "pkg": "node-red" },
+      "answers": { "ide": [ { "value": true } ], "exec": [ { "value": "logic", "review": "function nodes run JavaScript; check the sandbox settings" } ], "upload": [ { "value": true } ] }
+    },
+    {
+      "id": "operator", "type": "person", "name": "Operator / technician",
+      "when": { "always": true }
+    },
+    {
+      "id": "update-server", "type": "cloud", "name": "Update server",
+      "when": { "any": [ { "pkg": "rauc-hawkbit.*|mender|mender-client|mender-update|aktualizr.*" }, { "file": "/etc/swupdate.cfg", "re": "^\\s*suricatta\\s*:" } ] }
+    }
+  ],
+  "flows": [
+    { "from": "operator", "to": "openssh-login", "label": "SSH", "encrypted": true, "sensitive": true },
+    { "from": "operator", "to": "dropbear-login", "label": "SSH", "encrypted": true, "sensitive": true },
+    { "from": "operator", "to": "webui", "label": "web admin", "encrypted": "netsvc:webserver.crypto", "sensitive": true },
+    { "from": "operator", "to": "debug", "label": "serial console", "encrypted": false, "sensitive": true },
+    { "from": "update-server", "to": "rauc", "label": "update bundle", "encrypted": true, "sensitive": true },
+    { "from": "update-server", "to": "swupdate", "label": "update image", "encrypted": true, "sensitive": true },
+    { "from": "update-server", "to": "mender", "label": "artifact", "encrypted": true, "sensitive": true },
+    { "from": "update-server", "to": "ostree", "label": "OSTree commits", "encrypted": true, "sensitive": true }
+  ]
+}

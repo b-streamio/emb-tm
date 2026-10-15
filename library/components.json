@@ -1,164 +1,596 @@
 {
   "version": "0.1",
-  "groups": ["Hardware", "System software", "Application", "Networking", "External"],
+  "groups": [
+    "System",
+    "Hardware",
+    "System software",
+    "Application",
+    "Networking",
+    "External"
+  ],
   "components": [
     {
-      "type": "soc", "name": "Processor / SoC", "group": "Hardware", "tag": "SoC",
+      "type": "device",
+      "name": "Device",
+      "group": "System",
+      "tag": "DEV",
+      "hint": "A complete device of the solution (AI unit, gateway, router, camera). It opens its own design page; set a quantity for identical units.",
+      "base": [],
+      "questions": [],
+      "container": true
+    },
+    {
+      "type": "soc",
+      "name": "Processor / SoC",
+      "group": "Hardware",
+      "tag": "SoC",
       "hint": "Application processor or MCU running the firmware.",
-      "base": ["PID-11", "PID-13"],
+      "base": [
+        "PID-11",
+        "PID-13"
+      ],
       "questions": [
-        {"id": "shared_mem", "text": "Other bus masters (GPU, DMA engines, coprocessors) share its physical memory", "kind": "bool", "default": true, "pids": ["PID-122"]}
+        {
+          "id": "shared_mem",
+          "text": "Other bus masters (GPU, DMA engines, coprocessors) share its physical memory",
+          "kind": "bool",
+          "default": true,
+          "pids": [
+            "PID-122"
+          ]
+        }
       ]
     },
     {
-      "type": "dram", "name": "RAM", "group": "Hardware", "tag": "RAM",
+      "type": "dram",
+      "name": "RAM",
+      "group": "Hardware",
+      "tag": "RAM",
       "hint": "Working memory outside the CPU die.",
-      "base": ["PID-124"],
+      "base": [
+        "PID-124"
+      ],
       "questions": [
-        {"id": "ddr", "text": "DDR / LPDDR DRAM", "kind": "bool", "default": true, "pids": ["PID-1241"]}
+        {
+          "id": "ddr",
+          "text": "DDR / LPDDR DRAM",
+          "kind": "bool",
+          "default": true,
+          "pids": [
+            "PID-1241"
+          ]
+        }
       ]
     },
     {
-      "type": "storage", "name": "Flash / eMMC", "group": "Hardware", "tag": "NVM",
+      "type": "storage",
+      "name": "Flash / eMMC",
+      "group": "Hardware",
+      "tag": "NVM",
       "hint": "External non-volatile storage holding firmware and data.",
-      "base": ["PID-12", "PID-121"],
+      "base": [
+        "PID-12",
+        "PID-121"
+      ],
       "questions": [
-        {"id": "removable", "text": "Removable or ROM media (SD card, mask ROM)", "kind": "bool", "default": false, "pids": ["PID-123"]}
+        {
+          "id": "removable",
+          "text": "Removable or ROM media (SD card, mask ROM)",
+          "kind": "bool",
+          "default": false,
+          "pids": [
+            "PID-123"
+          ]
+        }
       ]
     },
     {
-      "type": "debug", "name": "Debug port", "group": "Hardware", "tag": "JTAG",
+      "type": "debug",
+      "name": "Debug port",
+      "group": "Hardware",
+      "tag": "JTAG",
       "hint": "JTAG, SWD or UART console reachable on the board.",
-      "base": ["PID-15"],
+      "base": [
+        "PID-15"
+      ],
       "questions": [
-        {"id": "sw_debug", "text": "Software debug features enabled (debug shell, gdbserver, verbose console)", "kind": "bool", "default": true, "pids": ["PID-22"]}
+        {
+          "id": "sw_debug",
+          "text": "Software debug features enabled (debug shell, gdbserver, verbose console)",
+          "kind": "bool",
+          "default": true,
+          "pids": [
+            "PID-22"
+          ]
+        }
       ]
     },
     {
-      "type": "periph", "name": "External interface", "group": "Hardware", "tag": "I/O",
+      "type": "periph",
+      "name": "External interface",
+      "group": "Hardware",
+      "tag": "I/O",
       "hint": "USB, serial, CAN or other connector exposed on the enclosure.",
-      "base": ["PID-14"],
+      "base": [
+        "PID-14"
+      ],
       "questions": []
     },
     {
-      "type": "rot", "name": "Root of trust", "group": "Hardware", "tag": "RoT",
+      "type": "rot",
+      "name": "Root of trust",
+      "group": "Hardware",
+      "tag": "RoT",
       "hint": "TPM, secure element, boot ROM keys or OTP fuses.",
-      "base": ["PID-25"],
+      "base": [
+        "PID-25"
+      ],
       "questions": [
-        {"id": "rot_kind", "text": "The root of trust is", "kind": "choice", "default": "immutable", "options": [
-          {"value": "immutable", "label": "Immutable (boot ROM, OTP fuses)", "pids": ["PID-252"]},
-          {"value": "mutable", "label": "Physically accessible or modifiable", "pids": ["PID-251"]}
-        ]}
+        {
+          "id": "rot_kind",
+          "text": "The root of trust is",
+          "kind": "choice",
+          "default": "immutable",
+          "options": [
+            {
+              "value": "immutable",
+              "label": "Immutable (boot ROM, OTP fuses)",
+              "pids": [
+                "PID-252"
+              ]
+            },
+            {
+              "value": "mutable",
+              "label": "Physically accessible or modifiable",
+              "pids": [
+                "PID-251"
+              ]
+            }
+          ]
+        }
       ]
     },
     {
-      "type": "bootloader", "name": "Bootloader", "group": "System software", "tag": "BL",
+      "type": "bootloader",
+      "name": "Bootloader",
+      "group": "System software",
+      "tag": "BL",
       "hint": "First and second stage loaders (TF-A, U-Boot, barebox).",
-      "base": ["PID-21"],
+      "base": [
+        "PID-21"
+      ],
       "questions": [
-        {"id": "verify", "text": "The next boot stage is verified with", "kind": "choice", "default": "signature", "options": [
-          {"value": "none", "label": "Nothing", "pids": ["PID-271"]},
-          {"value": "shared", "label": "A shared key (HMAC, symmetric)", "pids": ["PID-272", "PID-2721"]},
-          {"value": "signature", "label": "A digital signature", "pids": ["PID-272", "PID-2722"]}
-        ]}
+        {
+          "id": "verify",
+          "text": "The next boot stage is verified with",
+          "kind": "choice",
+          "default": "signature",
+          "options": [
+            {
+              "value": "none",
+              "label": "Nothing",
+              "pids": [
+                "PID-271"
+              ]
+            },
+            {
+              "value": "shared",
+              "label": "A shared key (HMAC, symmetric)",
+              "pids": [
+                "PID-272",
+                "PID-2721"
+              ]
+            },
+            {
+              "value": "signature",
+              "label": "A digital signature",
+              "pids": [
+                "PID-272",
+                "PID-2722"
+              ]
+            }
+          ]
+        }
       ]
     },
     {
-      "type": "os", "name": "OS / kernel", "group": "System software", "tag": "OS",
+      "type": "os",
+      "name": "OS / kernel",
+      "group": "System software",
+      "tag": "OS",
       "hint": "Linux, RTOS or bare-metal executive.",
-      "base": ["PID-23"],
+      "base": [
+        "PID-23"
+      ],
       "questions": [
-        {"id": "modules", "text": "Drivers or modules can be loaded at runtime", "kind": "bool", "default": true, "pids": ["PID-231"]},
-        {"id": "separation", "text": "Separation between users and processes", "kind": "choice", "default": "accounts", "options": [
-          {"value": "none", "label": "None enforced", "pids": ["PID-232", "PID-2321"]},
-          {"value": "accounts", "label": "Enforced user accounts", "pids": ["PID-232", "PID-2322", "PID-23221"]}
-        ]},
-        {"id": "mmu", "text": "Memory protection (MMU/MPU, non-executable data)", "kind": "bool", "default": true, "pids": ["PID-2322", "PID-23222"]},
-        {"id": "containers", "text": "Runs containers", "kind": "bool", "default": false, "pids": ["PID-24", "PID-241"]},
-        {"id": "hypervisor", "text": "Runs on or hosts a hypervisor", "kind": "bool", "default": false, "pids": ["PID-24", "PID-242"]},
-        {"id": "syslog", "text": "Stores system logs on the device", "kind": "bool", "default": true, "pids": ["PID-28"]}
+        {
+          "id": "modules",
+          "text": "Drivers or modules can be loaded at runtime",
+          "kind": "bool",
+          "default": true,
+          "pids": [
+            "PID-231"
+          ]
+        },
+        {
+          "id": "separation",
+          "text": "Separation between users and processes",
+          "kind": "choice",
+          "default": "accounts",
+          "options": [
+            {
+              "value": "none",
+              "label": "None enforced",
+              "pids": [
+                "PID-232",
+                "PID-2321"
+              ]
+            },
+            {
+              "value": "accounts",
+              "label": "Enforced user accounts",
+              "pids": [
+                "PID-232",
+                "PID-2322",
+                "PID-23221"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "mmu",
+          "text": "Memory protection (MMU/MPU, non-executable data)",
+          "kind": "bool",
+          "default": true,
+          "pids": [
+            "PID-2322",
+            "PID-23222"
+          ]
+        },
+        {
+          "id": "containers",
+          "text": "Runs containers",
+          "kind": "bool",
+          "default": false,
+          "pids": [
+            "PID-24",
+            "PID-241"
+          ]
+        },
+        {
+          "id": "hypervisor",
+          "text": "Runs on or hosts a hypervisor",
+          "kind": "bool",
+          "default": false,
+          "pids": [
+            "PID-24",
+            "PID-242"
+          ]
+        },
+        {
+          "id": "syslog",
+          "text": "Stores system logs on the device",
+          "kind": "bool",
+          "default": true,
+          "pids": [
+            "PID-28"
+          ]
+        }
       ]
     },
     {
-      "type": "update", "name": "Update agent", "group": "System software", "tag": "OTA",
+      "type": "update",
+      "name": "Update agent",
+      "group": "System software",
+      "tag": "OTA",
       "hint": "Installs firmware or software updates. Leave it out if the device cannot be updated.",
-      "base": ["PID-27"],
+      "base": [
+        "PID-27"
+      ],
       "questions": [
-        {"id": "integrity", "text": "Update images are checked with", "kind": "choice", "default": "signature", "options": [
-          {"value": "none", "label": "Nothing", "pids": ["PID-271"]},
-          {"value": "shared", "label": "A shared key", "pids": ["PID-272", "PID-2721"]},
-          {"value": "signature", "label": "A digital signature", "pids": ["PID-272", "PID-2722"]}
-        ]},
-        {"id": "plaintext", "text": "Update images are not encrypted", "kind": "bool", "default": true, "pids": ["PID-273"]},
-        {"id": "pick_version", "text": "The user can choose which version to install", "kind": "bool", "default": false, "pids": ["PID-274"]},
-        {"id": "remote", "text": "Updates can be started remotely (OTA)", "kind": "bool", "default": true, "pids": ["PID-275"]}
+        {
+          "id": "integrity",
+          "text": "Update images are checked with",
+          "kind": "choice",
+          "default": "signature",
+          "options": [
+            {
+              "value": "none",
+              "label": "Nothing",
+              "pids": [
+                "PID-271"
+              ]
+            },
+            {
+              "value": "shared",
+              "label": "A shared key",
+              "pids": [
+                "PID-272",
+                "PID-2721"
+              ]
+            },
+            {
+              "value": "signature",
+              "label": "A digital signature",
+              "pids": [
+                "PID-272",
+                "PID-2722"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "plaintext",
+          "text": "Update images are not encrypted",
+          "kind": "bool",
+          "default": true,
+          "pids": [
+            "PID-273"
+          ]
+        },
+        {
+          "id": "pick_version",
+          "text": "The user can choose which version to install",
+          "kind": "bool",
+          "default": false,
+          "pids": [
+            "PID-274"
+          ]
+        },
+        {
+          "id": "remote",
+          "text": "Updates can be started remotely (OTA)",
+          "kind": "bool",
+          "default": true,
+          "pids": [
+            "PID-275"
+          ]
+        }
       ]
     },
     {
-      "type": "app", "name": "Application", "group": "Application", "tag": "APP",
+      "type": "app",
+      "name": "Application",
+      "group": "Application",
+      "tag": "APP",
       "hint": "Device application code and its libraries.",
-      "base": ["PID-31"],
+      "base": [
+        "PID-31"
+      ],
       "questions": [
-        {"id": "lang", "text": "Written mainly in", "kind": "choice", "default": "c", "options": [
-          {"value": "c", "label": "C or C++", "pids": ["PID-312", "PID-3122"]},
-          {"value": "managed", "label": "Python, Java or another managed language", "pids": ["PID-312", "PID-3121"]}
-        ]},
-        {"id": "web", "text": "Serves HTTP or a web application", "kind": "bool", "default": false, "pids": ["PID-311"]},
-        {"id": "applog", "text": "Stores application logs", "kind": "bool", "default": false, "pids": ["PID-34"]}
+        {
+          "id": "lang",
+          "text": "Written mainly in",
+          "kind": "choice",
+          "default": "c",
+          "options": [
+            {
+              "value": "c",
+              "label": "C or C++",
+              "pids": [
+                "PID-312",
+                "PID-3122"
+              ]
+            },
+            {
+              "value": "managed",
+              "label": "Python, Java or another managed language",
+              "pids": [
+                "PID-312",
+                "PID-3121"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "web",
+          "text": "Serves HTTP or a web application",
+          "kind": "bool",
+          "default": false,
+          "pids": [
+            "PID-311"
+          ]
+        },
+        {
+          "id": "applog",
+          "text": "Stores application logs",
+          "kind": "bool",
+          "default": false,
+          "pids": [
+            "PID-34"
+          ]
+        }
       ]
     },
     {
-      "type": "runtime", "name": "Program runtime", "group": "Application", "tag": "RUN",
+      "type": "runtime",
+      "name": "Program runtime",
+      "group": "Application",
+      "tag": "RUN",
       "hint": "Runs user-supplied logic: PLC programs, scripts, plugins.",
-      "base": ["PID-32", "PID-322"],
+      "base": [
+        "PID-32",
+        "PID-322"
+      ],
       "questions": [
-        {"id": "ide", "text": "Programs are deployed from engineering software or an IDE", "kind": "bool", "default": true, "pids": ["PID-321"]},
-        {"id": "exec", "text": "Custom programs run as", "kind": "choice", "default": "native", "options": [
-          {"value": "native", "label": "Native binaries without confinement", "pids": ["PID-323", "PID-3231"]},
-          {"value": "sandbox", "label": "Processes in a sandbox", "pids": ["PID-323", "PID-3232"]},
-          {"value": "logic", "label": "Interpreted logic only", "pids": []}
-        ]},
-        {"id": "upload", "text": "Programs can be uploaded back to a workstation", "kind": "bool", "default": false, "pids": ["PID-324"]}
+        {
+          "id": "ide",
+          "text": "Programs are deployed from engineering software or an IDE",
+          "kind": "bool",
+          "default": true,
+          "pids": [
+            "PID-321"
+          ]
+        },
+        {
+          "id": "exec",
+          "text": "Custom programs run as",
+          "kind": "choice",
+          "default": "native",
+          "options": [
+            {
+              "value": "native",
+              "label": "Native binaries without confinement",
+              "pids": [
+                "PID-323",
+                "PID-3231"
+              ]
+            },
+            {
+              "value": "sandbox",
+              "label": "Processes in a sandbox",
+              "pids": [
+                "PID-323",
+                "PID-3232"
+              ]
+            },
+            {
+              "value": "logic",
+              "label": "Interpreted logic only",
+              "pids": []
+            }
+          ]
+        },
+        {
+          "id": "upload",
+          "text": "Programs can be uploaded back to a workstation",
+          "kind": "bool",
+          "default": false,
+          "pids": [
+            "PID-324"
+          ]
+        }
       ]
     },
     {
-      "type": "ui", "name": "Management interface", "group": "Application", "tag": "UI",
+      "type": "ui",
+      "name": "Management interface",
+      "group": "Application",
+      "tag": "UI",
       "hint": "Local or remote console, web UI or API for operators.",
-      "base": ["PID-33"],
+      "base": [
+        "PID-33"
+      ],
       "questions": [
-        {"id": "auth", "text": "Users authenticate with", "kind": "choice", "default": "password", "options": [
-          {"value": "none", "label": "No authentication", "pids": ["PID-331"]},
-          {"value": "password", "label": "Passwords", "pids": ["PID-332", "PID-3321"]},
-          {"value": "crypto", "label": "Certificates, keys or tokens", "pids": ["PID-332", "PID-3322"]}
-        ]}
+        {
+          "id": "auth",
+          "text": "Users authenticate with",
+          "kind": "choice",
+          "default": "password",
+          "options": [
+            {
+              "value": "none",
+              "label": "No authentication",
+              "pids": [
+                "PID-331"
+              ]
+            },
+            {
+              "value": "password",
+              "label": "Passwords",
+              "pids": [
+                "PID-332",
+                "PID-3321"
+              ]
+            },
+            {
+              "value": "crypto",
+              "label": "Certificates, keys or tokens",
+              "pids": [
+                "PID-332",
+                "PID-3322"
+              ]
+            }
+          ]
+        }
       ]
     },
     {
-      "type": "netsvc", "name": "Network service", "group": "Networking", "tag": "NET",
+      "type": "netsvc",
+      "name": "Network service",
+      "group": "Networking",
+      "tag": "NET",
       "hint": "A protocol endpoint reachable from the network (MQTT, Modbus, SSH, REST).",
-      "base": ["PID-41"],
+      "base": [
+        "PID-41"
+      ],
       "questions": [
-        {"id": "sensitive", "text": "Sends, receives or changes sensitive data or configuration", "kind": "bool", "default": true, "pids": ["PID-411"]},
-        {"id": "no_auth", "text": "The protocol has no message authentication", "kind": "bool", "default": false, "pids": ["PID-4111"]},
-        {"id": "no_enc", "text": "The protocol has no encryption", "kind": "bool", "default": false, "pids": ["PID-4112"]},
-        {"id": "crypto", "text": "Uses cryptography to protect the data", "kind": "bool", "default": true, "pids": ["PID-4113"]},
-        {"id": "route", "text": "Forwards or routes traffic for other devices", "kind": "bool", "default": false, "pids": ["PID-42"]}
+        {
+          "id": "sensitive",
+          "text": "Sends, receives or changes sensitive data or configuration",
+          "kind": "bool",
+          "default": true,
+          "pids": [
+            "PID-411"
+          ]
+        },
+        {
+          "id": "no_auth",
+          "text": "The protocol has no message authentication",
+          "kind": "bool",
+          "default": false,
+          "pids": [
+            "PID-4111"
+          ]
+        },
+        {
+          "id": "no_enc",
+          "text": "The protocol has no encryption",
+          "kind": "bool",
+          "default": false,
+          "pids": [
+            "PID-4112"
+          ]
+        },
+        {
+          "id": "crypto",
+          "text": "Uses cryptography to protect the data",
+          "kind": "bool",
+          "default": true,
+          "pids": [
+            "PID-4113"
+          ]
+        },
+        {
+          "id": "route",
+          "text": "Forwards or routes traffic for other devices",
+          "kind": "bool",
+          "default": false,
+          "pids": [
+            "PID-42"
+          ]
+        }
       ]
     },
     {
-      "type": "cloud", "name": "Cloud backend", "group": "External", "tag": "EXT", "external": true,
+      "type": "cloud",
+      "name": "Cloud backend",
+      "group": "External",
+      "tag": "EXT",
+      "external": true,
       "hint": "Remote service the device talks to. Documents data flows; EMB3D adds no threats.",
-      "base": [], "questions": []
+      "base": [],
+      "questions": []
     },
     {
-      "type": "workstation", "name": "Engineering workstation", "group": "External", "tag": "EXT", "external": true,
+      "type": "workstation",
+      "name": "Engineering workstation",
+      "group": "External",
+      "tag": "EXT",
+      "external": true,
       "hint": "Tooling used to configure or program the device.",
-      "base": [], "questions": []
+      "base": [],
+      "questions": []
     },
     {
-      "type": "person", "name": "Operator", "group": "External", "tag": "USR", "external": true,
+      "type": "person",
+      "name": "Operator",
+      "group": "External",
+      "tag": "USR",
+      "external": true,
       "hint": "Person who uses or maintains the device.",
-      "base": [], "questions": []
+      "base": [],
+      "questions": []
     }
   ]
 }
