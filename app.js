@@ -1,5 +1,5 @@
 /* EMB3D Workbench — embedded threat modeling on top of MITRE EMB3D.
- * Plain JS, no build step. Data: data/emb3d.json (generated), library/components.json (hand-maintained).
+ * Plain JS, no build step. Data: MITRE's STIX files in data/stix/ (see index.json), library/components.json (hand-maintained).
  * Rules: component answers -> EMB3D properties -> threats -> mitigations.
  */
 (() => {
@@ -9,6 +9,8 @@
   const TMBOM_SCHEMA = 'https://github.com/OWASP/www-project-threat-model-library/blob/v1.0.2/threat-model.schema.json';
   const EXT_KEY = 'emb3d-workbench.invalid/project';
   const NODE_W = 168;
+  const NODE_H = 64;
+  const MITRE_SITE = 'https://emb3d.mitre.org';
 
   const CM_STATUS = [
     ['recommended', 'Recommended'],
@@ -33,7 +35,10 @@
     External: ['external', 'External'],
   };
 
-  let E = null;       // EMB3D data
+  let E = null;       // EMB3D data for the project's version
+  let IDX = null;     // data/stix/index.json
+  const STIX = new Map(); // version -> parsed data
+  const SESSION_VERSIONS = []; // versions fetched from emb3d.mitre.org for this session only
   let LIB = null;     // component library
   let TYPES = {};     // type -> library entry
   let S = null;       // project state
@@ -42,6 +47,7 @@
   let openThreat = null;
   let view = 'diagram';
   let filters = { tState: 'all', tComp: 'all', cStatus: 'all' };
+  let reportOpts = { diagram: true, mitigated: true, closed: true, empty: false, props: true, fulltext: false };
 
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -77,6 +83,7 @@
         { id: 5, from: 6, to: 7, label: 'boot handoff', encrypted: false, sensitive: false },
       ],
       flowSeq: 6,
+      meta: { description: 'Example model: an Arm-based Linux gateway with a TPM, signed OTA updates, a web admin UI and MQTT telemetry to a fleet backend.', owner: '', reviewer: '' },
     };
   }
 
@@ -125,7 +132,8 @@
     }
     // A sub-property implies its parent.
     for (const p of [...out.keys()]) {
-      let par = E.properties[p] && E.properties[p].parent;
+      if (!E.properties[p]) { out.delete(p); continue; } // not defined in this EMB3D version
+      let par = E.properties[p].parent;
       while (par) { if (!out.has(par)) out.set(par, 'parent'); par = E.properties[par].parent; }
     }
     return out;
@@ -353,7 +361,7 @@
         <div class="stat done"><b>${cms.filter((c) => c.status === 'implemented').length}</b><span>countermeasures implemented of ${cms.length}</span></div>
       </div>
       <p class="small">Select a component to answer its questions and work through its threats. Use <b>Draw data flow</b> on a component to connect it to another.</p>
-      <p class="small">Threats and countermeasures come from MITRE EMB3D ${esc(E.version)}. EMB3D rates evidence, not severity, so threats are ordered by how much real-world evidence exists for them.</p>
+      <p class="small">Threats and countermeasures come from MITRE EMB3D STIX ${esc(E.version)}. EMB3D rates evidence, not severity, so threats are ordered by how much real-world evidence exists for them.</p>
     </div>`;
   }
 
@@ -518,7 +526,7 @@
       html = `<div class="dhead"><span class="eyebrow" style="margin:0">${id} · ${esc(t.cat)} threat</span><span class="mat m${mat[0]}">${esc(mat[1])}</span>
           <a class="extlink" href="${mitreUrl(id)}" target="_blank" rel="noopener">Open on emb3d.mitre.org ↗</a></div>
         <h3>${esc(t.name)}</h3>
-        <p>${richText(t.desc)}</p>
+        ${(t.text || [t.desc]).map((x) => `<p>${richText(x)}</p>`).join('')}
         <div><p class="eyebrow">Device properties</p><p class="small">${t.pids.map((p) => `<span class="tid">${p}</span> ${esc(E.properties[p].name)}`).join('<br>')}</p></div>
         ${t.cwes.length ? `<div><p class="eyebrow">Weaknesses</p><p class="small">${t.cwes.map(([i, n]) => `<a class="extlink" href="https://cwe.mitre.org/data/definitions/${i}.html" target="_blank" rel="noopener">CWE-${i}</a> ${esc(n)}`).join('<br>')}</p></div>` : ''}
         <div><p class="eyebrow">Mitigations · ${t.mids.length}</p><div class="tlist">${t.mids.map((m) => `<button data-detail="${m}"><span class="tid">${m}</span> ${esc(E.mitigations[m].name)}</button>`).join('')}</div></div>`;
@@ -531,6 +539,9 @@
   function openDetail(id) {
     if (!E.threats[id] && !E.mitigations[id]) return;
     detailStack.push(id);
+    $('dAction').hidden = true;
+    $('dClose').textContent = 'Close';
+    $('dClose').onclick = closeDetail;
     renderDetail(id);
     $('dOverlay').hidden = false;
     $('dClose').focus();
@@ -677,7 +688,7 @@
       version: '1.0',
       scope: {
         title: S.name,
-        description: `Threat model of ${S.name}, built with EMB3D Workbench on MITRE EMB3D ${E.version}.`,
+        description: S.meta?.description || `Threat model of ${S.name}, built with EMB3D Workbench on MITRE EMB3D STIX ${E.version}.`,
         business_criticality: 'moderate', data_sensitivity: ['cred', 'ip', 'op'], exposure: 'external', tier: 'important',
       },
       description: 'Threats and countermeasures derived from MITRE EMB3D device properties (https://emb3d.mitre.org/).',
@@ -723,8 +734,13 @@
     p.flows = p.flows || [];
     p.seq = Math.max(p.seq || 1, ...p.nodes.map((n) => n.id + 1));
     p.flowSeq = Math.max(p.flowSeq || 1, ...p.flows.map((f) => f.id + 1), 1);
+    const wanted = p.emb3d;
+    if (!wanted || !allVersions().some((v) => v.version === wanted)) p.emb3d = IDX.default;
     S = p; sel = null; openThreat = null;
-    commit();
+    loadVersion(S.emb3d).then((d) => {
+      E = d; renderVersionSelect(); commit();
+      if (wanted && wanted !== S.emb3d) panel('', `<h3>Opened with EMB3D ${esc(S.emb3d)}</h3><p>This model was made with EMB3D ${esc(wanted)}, which is not available here. It now uses ${esc(S.emb3d)}. Add the original with <span class="mono">python3 tools/emb3d_update.py add ${esc(wanted)}</span> to reproduce it exactly.</p>`);
+    });
     return null;
   }
 
@@ -734,7 +750,7 @@
     $('hintCancel').addEventListener('click', () => { connectFrom = null; $('hint').hidden = true; renderBoard(); });
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
-      if (!$('dOverlay').hidden) { closeDetail(); return; }
+      if (!$('dOverlay').hidden) { $('dClose').click(); return; }
       if (!$('overlay').hidden) { $('overlay').hidden = true; return; }
       if (connectFrom !== null) { connectFrom = null; $('hint').hidden = true; renderBoard(); }
     });
@@ -773,18 +789,19 @@
         return;
       }
       newArmed = false; $('btnNew').textContent = 'New';
-      S = emptyProject(); sel = null; commit();
+      S = emptyProject(); S.emb3d = E.version; sel = null; commit();
     });
     $('mClose').addEventListener('click', () => { $('overlay').hidden = true; });
+    $('verSel').addEventListener('change', (e) => proposeVersion(e.target.value));
+    $('btnUpd').addEventListener('click', checkForUpdates);
     document.addEventListener('click', (e) => {
       const b = e.target.closest('[data-detail]');
       if (!b) return;
       e.preventDefault(); e.stopPropagation();
       openDetail(b.dataset.detail);
     }, true);
-    $('dClose').addEventListener('click', closeDetail);
     $('dBack').addEventListener('click', () => { detailStack.pop(); renderDetail(detailStack[detailStack.length - 1]); });
-    $('dOverlay').addEventListener('click', (e) => { if (e.target === $('dOverlay')) closeDetail(); });
+    $('dOverlay').addEventListener('click', (e) => { if (e.target === $('dOverlay')) $('dClose').click(); });
     $('overlay').addEventListener('click', (e) => { if (e.target === $('overlay')) $('overlay').hidden = true; });
     $('mCopy').addEventListener('click', async () => {
       try { await navigator.clipboard.writeText($('mBody').value); $('mMsg').textContent = 'Copied'; }
@@ -804,6 +821,7 @@
     $('view-diagram').hidden = v !== 'diagram';
     $('view-threats').hidden = v !== 'threats';
     $('view-cms').hidden = v !== 'cms';
+    $('view-report').hidden = v !== 'report';
     render();
   }
 
@@ -817,20 +835,250 @@
     if (view === 'diagram') { renderBoard(); renderInspector(); }
     if (view === 'threats') renderThreats();
     if (view === 'cms') renderCms();
+    if (view === 'report') renderReport();
     updateCount();
   }
 
   function commit() { save(); render(); }
 
+
+  /* ---------- EMB3D versions ---------- */
+
+  const allVersions = () => [...IDX.versions, ...SESSION_VERSIONS];
+  const vkey = (v) => v.split('.').map(Number);
+  const vcmp = (a, b) => { const x = vkey(a), y = vkey(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d; } return 0; };
+
+  async function loadVersion(v) {
+    if (STIX.has(v)) return STIX.get(v);
+    const meta = allVersions().find((x) => x.version === v);
+    if (!meta) throw new Error(`EMB3D STIX ${v} is not available`);
+    const bundle = meta.bundle || await fetch('data/stix/' + meta.file).then((r) => { if (!r.ok) throw new Error(`${meta.file}: HTTP ${r.status}`); return r.json(); });
+    const data = window.EMB3D_STIX.parse(bundle, v);
+    STIX.set(v, data);
+    return data;
+  }
+
+  function renderVersionSelect() {
+    const list = allVersions().slice().sort((a, b) => vcmp(b.version, a.version));
+    $('verSel').innerHTML = list.map((m) => `<option value="${esc(m.version)}" ${m.version === E.version ? 'selected' : ''}>EMB3D ${esc(m.version)}${m.version === IDX.default ? ' (default)' : ''}${m.session ? ' (this session)' : ''}</option>`).join('');
+  }
+
+  // Threat IDs that apply to each component under a given data set.
+  function threatSets(data) {
+    const keep = E;
+    E = data;
+    const out = new Map();
+    try { S.nodes.filter((n) => !TYPES[n.type]?.external).forEach((n) => out.set(n.id, new Set(nodeThreats(n).map((r) => r.tid)))); }
+    finally { E = keep; }
+    return out;
+  }
+
+  function libraryPids() {
+    const set = new Set();
+    LIB.components.forEach((c) => {
+      c.base.forEach((p) => set.add(p));
+      c.questions.forEach((q) => { (q.pids || []).forEach((p) => set.add(p)); (q.options || []).forEach((o) => o.pids.forEach((p) => set.add(p))); });
+    });
+    return set;
+  }
+
+  async function proposeVersion(v) {
+    if (v === E.version) return;
+    let next;
+    try { next = await loadVersion(v); } catch (e) { panel('Could not load that version', `<p>${esc(e.message)}</p>`); renderVersionSelect(); return; }
+    const d = window.EMB3D_STIX.diff(E, next);
+    const before = threatSets(E), after = threatSets(next);
+    const rows = S.nodes.filter((n) => before.has(n.id)).map((n) => {
+      const add = [...after.get(n.id)].filter((t) => !before.get(n.id).has(t));
+      const rem = [...before.get(n.id)].filter((t) => !after.get(n.id).has(t));
+      return { n, add, rem };
+    }).filter((r) => r.add.length || r.rem.length);
+    const missing = [...libraryPids()].filter((p) => !next.properties[p]);
+    const tl = (ids, data) => ids.map((t) => `<span class="tid">${t}</span> ${esc(data.threats[t].name)}`).join('<br>');
+    const renamed = [...d.threatsRenamed.map((t) => [t, E.threats[t].name, next.threats[t].name]), ...d.mitigationsRenamed.map((m) => [m, E.mitigations[m].name, next.mitigations[m].name])];
+    const html = `<div class="dhead"><span class="eyebrow" style="margin:0">Switch EMB3D version</span></div>
+      <h3>EMB3D ${esc(E.version)} → ${esc(v)}</h3>
+      <p>Countermeasure statuses, decisions and justifications are kept: they are stored by threat and mitigation ID.</p>
+      <div><p class="eyebrow">Your components</p>${rows.length ? `<table class="mini"><thead><tr><th>Component</th><th>Threats added</th><th>Threats removed</th></tr></thead><tbody>
+        ${rows.map((r) => `<tr><td>${esc(r.n.name)}</td><td>${tl(r.add, next) || '—'}</td><td>${tl(r.rem, E) || '—'}</td></tr>`).join('')}</tbody></table>` : '<p class="small">No threats are added or removed for this model.</p>'}</div>
+      ${renamed.length ? `<div><p class="eyebrow">Renamed in ${esc(v)}</p><p class="small">${renamed.map(([id, a, b]) => `<span class="tid">${id}</span> ${esc(a)} → <b>${esc(b)}</b>`).join('<br>')}</p></div>` : ''}
+      <div><p class="eyebrow">Catalogue changes</p><p class="small">
+        Threats: ${d.threatsAdded.length} added, ${d.threatsRemoved.length} removed, ${d.threatsRemapped.length} with changed properties or mitigations.<br>
+        Mitigations: ${d.mitigationsAdded.length} added, ${d.mitigationsRemoved.length} removed.</p></div>
+      ${missing.length ? `<p class="warn">The component library uses properties that ${esc(v)} does not define: ${missing.join(', ')}. Those answers will add nothing.</p>` : ''}`;
+    panel('', html, { label: `Use EMB3D ${v}`, run: () => { E = next; S.emb3d = v; closeDetail(); renderVersionSelect(); commit(); } }, () => renderVersionSelect());
+  }
+
+  async function checkForUpdates() {
+    panel('', '<p class="muted">Checking emb3d.mitre.org…</p>');
+    let found;
+    try {
+      const html = await fetch(MITRE_SITE + '/subtabs/data.html', { cache: 'no-store' }).then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); });
+      found = [...new Set([...html.matchAll(/emb3d-stix-(\d+(?:\.\d+)*)\.json/g)].map((m) => m[1]))].sort((a, b) => vcmp(b, a));
+      if (!found.length) throw new Error('no STIX links on the data page');
+    } catch (e) {
+      panel('', `<h3>Could not reach emb3d.mitre.org</h3>
+        <p>The browser could not read MITRE's data page (${esc(e.message)}). This happens offline and in sandboxed previews.</p>
+        <p>From the project folder, run:</p><pre class="cmd">python3 tools/emb3d_update.py check</pre>`);
+      return;
+    }
+    const have = new Set(allVersions().map((x) => x.version));
+    const fresh = found.filter((v) => !have.has(v));
+    if (!fresh.length) {
+      panel('', `<h3>EMB3D is up to date</h3><p>emb3d.mitre.org lists ${found.map(esc).join(', ')}. All of them are available here.</p>`);
+      return;
+    }
+    const v = fresh[0];
+    panel('', `<h3>EMB3D STIX ${esc(v)} is available</h3>
+      <p>emb3d.mitre.org lists ${found.map(esc).join(', ')}. This copy of the Workbench has ${[...have].sort((a, b) => vcmp(b, a)).map(esc).join(', ')}.</p>
+      <p>To add it for everyone using this copy, run this in the project folder and commit the result:</p>
+      <pre class="cmd">python3 tools/emb3d_update.py add ${esc(v)}</pre>
+      <p>Or try it now: the file is downloaded into this browser session only.</p>`,
+    { label: `Try ${v} now`, run: async () => {
+      try {
+        const bundle = await fetch(`${MITRE_SITE}/assets/emb3d-stix-${v}.json`).then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+        window.EMB3D_STIX.parse(bundle, v);
+        SESSION_VERSIONS.push({ version: v, file: `emb3d-stix-${v}.json`, session: true, bundle });
+        renderVersionSelect();
+        proposeVersion(v);
+      } catch (e) { panel('', `<h3>Download failed</h3><p>${esc(e.message)}</p><pre class="cmd">python3 tools/emb3d_update.py add ${esc(v)}</pre>`); }
+    } });
+  }
+
+  // Generic panel in the reader dialog with an optional primary action.
+  function panel(_title, html, action, onCancel) {
+    detailStack.length = 0;
+    $('dBody').innerHTML = html;
+    $('dBody').scrollTop = 0;
+    $('dBack').hidden = true;
+    $('dAction').hidden = !action;
+    if (action) { $('dAction').textContent = action.label; $('dAction').onclick = action.run; }
+    $('dClose').textContent = action ? 'Cancel' : 'Close';
+    $('dClose').onclick = () => { closeDetail(); if (onCancel) onCancel(); };
+    $('dOverlay').hidden = false;
+    (action ? $('dAction') : $('dClose')).focus();
+  }
+
+  /* ---------- report (layout follows OWASP Threat Dragon's report) ---------- */
+
+  function diagramSvg() {
+    if (!S.nodes.length) return '<p class="muted">The diagram is empty.</p>';
+    const pad = 30;
+    const minX = Math.min(...S.nodes.map((n) => n.x)) - pad, minY = Math.min(...S.nodes.map((n) => n.y)) - pad;
+    const maxX = Math.max(...S.nodes.map((n) => n.x + NODE_W)) + pad, maxY = Math.max(...S.nodes.map((n) => n.y + NODE_H)) + pad;
+    const wrap = (t) => { const w = String(t).split(/\s+/); const lines = ['']; w.forEach((x) => { if ((lines[lines.length - 1] + ' ' + x).trim().length > 22 && lines[lines.length - 1]) lines.push(x); else lines[lines.length - 1] = (lines[lines.length - 1] + ' ' + x).trim(); }); return lines.slice(0, 2); };
+    let out = `<svg class="rdiagram" viewBox="${minX} ${minY} ${maxX - minX} ${maxY - minY}" role="img" aria-label="Device diagram">
+      <defs><marker id="rarr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="rarrow"></path></marker></defs>`;
+    S.flows.forEach((f) => {
+      const a = nodeById(f.from), b = nodeById(f.to);
+      if (!a || !b) return;
+      const p = anchor(a, b), q = anchor(b, a);
+      out += `<line class="redge${f.encrypted ? '' : ' plain'}" x1="${p.x}" y1="${p.y}" x2="${q.x}" y2="${q.y}" marker-end="url(#rarr)"></line>
+        <text class="rlabel" x="${(p.x + q.x) / 2}" y="${(p.y + q.y) / 2 - 6}" text-anchor="middle">${esc(f.label)}</text>`;
+    });
+    S.nodes.forEach((n) => {
+      const def = TYPES[n.type];
+      const lines = wrap(n.name);
+      out += `<g class="rnode ${groupClass(def.group)}${def.external ? ' ext' : ''}">
+        <rect x="${n.x}" y="${n.y}" width="${NODE_W}" height="${NODE_H}" rx="8"></rect>
+        <text class="rtag" x="${n.x + 10}" y="${n.y + 17}">${esc(def.tag)} · #${n.id}</text>
+        ${lines.map((l, i) => `<text class="rname" x="${n.x + 10}" y="${n.y + 36 + i * 16}">${esc(l)}</text>`).join('')}</g>`;
+    });
+    return out + '</svg>';
+  }
+
+  function renderReport() {
+    const o = reportOpts;
+    const m = S.meta || (S.meta = { description: '', owner: '', reviewer: '' });
+    const rows = allRows();
+    const c = (st) => rows.filter((r) => r.state === st).length;
+    const openBy = (lvl) => rows.filter((r) => r.state === 'Open' && (MATURITY[r.t.maturity]?.[0] ?? 9) === lvl).length;
+    const cms = cmRows();
+    const missing = cms.filter((r) => missingWhy(r.node, r.mid)).length + rows.filter((r) => missingAcceptWhy(r.node, r.tid)).length;
+    const stats = [
+      ['Total Threats', rows.length], ['Total Mitigated', c('Mitigated')], ['Total Open', c('Open')],
+      ...(c('NA') ? [['Total Not Applicable', c('NA')]] : []), ...(c('Accepted') ? [['Total Accepted', c('Accepted')]] : []),
+      ['Open / Observed in attacks', openBy(0)], ['Open / Observed technique', openBy(1)], ['Open / Known weakness', openBy(2)], ['Open / Proof of concept', openBy(3)],
+      ['Countermeasures implemented', `${cms.filter((r) => r.status === 'implemented').length} of ${cms.length}`],
+      ...(missing ? [['Decisions missing a justification', missing]] : []),
+    ];
+    let num = 0;
+    const comps = S.nodes.filter((n) => !TYPES[n.type].external).map((n) => {
+      const ts = nodeThreats(n).map((r) => ({ ...r, state: threatState(n, r.tid) }))
+        .filter((r) => (o.mitigated || r.state !== 'Mitigated') && (o.closed || (r.state !== 'NA' && r.state !== 'Accepted')));
+      if (!ts.length && !o.empty) return '';
+      const def = TYPES[n.type];
+      const props = [...nodePids(n).keys()].sort((a, b) => a.localeCompare(b, 'en', { numeric: true }));
+      const body = ts.map((r) => {
+        num += 1;
+        const d = decision(n, r.tid);
+        const mat = MATURITY[r.t.maturity] || [9, r.t.maturity];
+        const cmCell = r.t.mids.map((mid) => {
+          const st = cmStatus(n, mid);
+          return `<div class="rcm"><b>${mid}</b> ${esc(E.mitigations[mid].name)} — <i>${CM_STATUS.find((x) => x[0] === st)[1]}</i>${why(n, mid) ? `<div class="rwhy">${esc(why(n, mid))}</div>` : ''}</div>`;
+        }).join('') || '—';
+        return `<tr><td class="num">${num}</td><td><b>${r.tid}</b> ${esc(r.t.name)}</td><td>${esc(r.t.cat)}</td><td>${esc(mat[1])}</td>
+          <td>${stateLabel(r.state)}${d ? `<div class="rwhy">${d === 'na' ? 'Not applicable' : 'Risk accepted'}: ${esc(why(n, 'accept:' + r.tid)) || '<i>no justification</i>'}</div>` : ''}</td>
+          <td>${(o.fulltext ? (r.t.text || [r.t.desc]) : [r.t.desc]).map((x) => `<p class="rp">${esc(x.replace(/\*/g, ''))}</p>`).join('')}${!o.fulltext && (r.t.text || []).length > 1 ? `<p class="rp rmore">Full text: emb3d.mitre.org/threats/${r.tid}.html</p>` : ''}</td><td>${cmCell}</td></tr>`;
+      }).join('');
+      return `<section class="rentity">
+        <div class="rhead"><h3>${esc(n.name)} (${esc(def.name)})</h3>
+        ${o.props ? `<p class="rprops">EMB3D properties: ${props.map((p) => `${p} ${esc(E.properties[p].name)}`).join('; ') || 'none'}</p>` : ''}</div>
+        ${ts.length ? `<div class="rscroll"><table class="rtable rthreats"><colgroup><col style="width:3%"><col style="width:15%"><col style="width:8%"><col style="width:9%"><col style="width:10%"><col style="width:33%"><col style="width:22%"></colgroup><thead><tr><th>#</th><th>Threat</th><th>Type</th><th>Evidence</th><th>Status</th><th>Description</th><th>Countermeasures</th></tr></thead><tbody>${body}</tbody></table></div>` : '<p class="muted">No threats to report for this component.</p>'}
+      </section>`;
+    }).join('');
+    const today = new Date().toISOString().slice(0, 10);
+    $('view-report').innerHTML = `
+      <div class="ropts no-print">
+        <div class="ropt-row">
+          ${[['diagram', 'Show model diagram'], ['mitigated', 'Show mitigated threats'], ['closed', 'Show not applicable and accepted threats'], ['empty', 'Show components without threats'], ['props', 'Show EMB3D properties'], ['fulltext', 'Full threat descriptions']]
+            .map(([k, l]) => `<label class="check"><input type="checkbox" id="ro-${k}" data-ro="${k}" ${o[k] ? 'checked' : ''}><span>${l}</span></label>`).join('')}
+          <button class="btn primary" id="btnPrint">Print / Save as PDF</button>
+        </div>
+        <div class="ropt-meta">
+          <div class="field"><label for="rm-owner">Owner</label><input type="text" id="rm-owner" data-meta="owner" value="${esc(m.owner)}"></div>
+          <div class="field"><label for="rm-reviewer">Reviewer</label><input type="text" id="rm-reviewer" data-meta="reviewer" value="${esc(m.reviewer)}"></div>
+          <div class="field wide"><label for="rm-description">Description</label><textarea id="rm-description" data-meta="description" rows="2" placeholder="What the device is, where it is deployed, what is in scope">${esc(m.description)}</textarea></div>
+        </div>
+        <p class="small muted">Print opens your browser's print dialog; choose "Save as PDF". Sandboxed previews block printing, so use the app from its own folder or server.</p>
+      </div>
+      <article class="report">
+        <p class="rbrand">${today} | EMB3D Workbench</p>
+        <div class="rcard">
+          <div class="rcard-h">Threat model report for ${esc(S.name)}</div>
+          <table class="rkv"><tbody>
+            <tr><th>Owner</th><td>${esc(m.owner) || '—'}</td><th>Reviewer</th><td>${esc(m.reviewer) || '—'}</td></tr>
+            <tr><th>Threat catalogue</th><td>MITRE EMB3D STIX ${esc(E.version)}</td><th>Date generated</th><td>${today}</td></tr>
+          </tbody></table>
+        </div>
+        <div class="rcard">
+          <div class="rcard-h">Executive Summary</div>
+          <h4>Description</h4><p class="rdesc">${esc(m.description) || 'Not provided'}</p>
+          <h4>Summary</h4>
+          <table class="rtable rsum"><thead><tr><th>Metric</th><th>Total</th></tr></thead><tbody>${stats.map(([k, v]) => `<tr><td>${k}</td><td class="num">${v}</td></tr>`).join('')}</tbody></table>
+        </div>
+        ${o.diagram ? `<section class="rpage"><h2>${esc(S.name)}</h2>${diagramSvg()}<p class="small muted">Dashed lines are unencrypted data flows.</p></section>` : ''}
+        ${comps || '<p class="muted">No components match the report options.</p>'}
+      </article>`;
+    $('view-report').querySelectorAll('input[data-ro]').forEach((i) => i.addEventListener('change', () => { reportOpts[i.dataset.ro] = i.checked; renderReport(); }));
+    $('view-report').querySelectorAll('[data-meta]').forEach((i) => {
+      i.addEventListener('input', () => { S.meta[i.dataset.meta] = i.value; save(); });
+      i.addEventListener('change', () => renderReport());
+    });
+    $('btnPrint').addEventListener('click', () => { document.title = `Threat model - ${S.name}`; window.print(); document.title = 'EMB3D Workbench'; });
+  }
+
   /* ---------- boot ---------- */
 
-  Promise.all([fetch('data/emb3d.json').then((r) => r.json()), fetch('library/components.json').then((r) => r.json())])
-    .then(([emb3d, lib]) => {
-      E = emb3d; LIB = lib;
+  Promise.all([fetch('data/stix/index.json').then((r) => r.json()), fetch('library/components.json').then((r) => r.json())])
+    .then(async ([idx, lib]) => {
+      IDX = idx; LIB = lib;
       LIB.components.forEach((c) => { TYPES[c.type] = c; });
-      $('ver').textContent = 'EMB3D ' + E.version;
       S = load();
       S.nodes.forEach((n) => { n.why = n.why || {}; });
+      if (!S.emb3d || !IDX.versions.some((v) => v.version === S.emb3d)) S.emb3d = IDX.default;
+      E = await loadVersion(S.emb3d);
+      renderVersionSelect();
       renderRail();
       wireChrome();
       render();

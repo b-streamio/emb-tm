@@ -208,6 +208,82 @@ td .sub { font-size: 12px; color: var(--muted); }
 .modal footer { display: flex; gap: 8px; justify-content: flex-end; padding: 0 18px 16px; flex-wrap: wrap; align-items: center; }
 .modal footer .msg { margin-right: auto; color: var(--s-done); font-size: 13px; }
 .loading { padding: 40px; color: var(--muted); }
+.ver { display: flex; gap: 6px; align-items: center; }
+#verSel { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 4px 6px; font-family: var(--f-mono); font-size: 12px; }
+.detail .mini { border-collapse: collapse; width: 100%; min-width: 0; font-size: 12.5px; }
+.detail .mini th, .detail .mini td { padding: 5px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; position: static; }
+.detail .warn { color: var(--s-open); font-size: 13px; }
+.detail .cmd, .detail pre.cmd { font-family: var(--f-mono); font-size: 12.5px; background: var(--sunk); padding: 8px 10px; border-radius: 6px; margin: 0; overflow-x: auto; user-select: all; }
+
+/* Report: layout follows OWASP Threat Dragon's report (cover card, executive summary, diagram, one threat table per element). */
+.ropts { display: grid; gap: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin-bottom: 18px; }
+.ropt-row { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+.ropt-row .btn { margin-left: auto; }
+.ropt-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
+.ropt-meta .wide { grid-column: 1 / -1; }
+.ropt-meta textarea { border: 1px solid var(--line); background: var(--bg); border-radius: 6px; padding: 7px 9px; width: 100%; resize: vertical; }
+.report { --r-ink: #1d2320; --r-muted: #5c6662; --r-line: #d5dbd8; --r-head: #eef1ef; --r-stripe: #f6f8f7; --r-card: #ffffff;
+  background: var(--r-card); color: var(--r-ink); border-radius: 8px; padding: 28px 32px 40px; max-width: 1180px; box-shadow: var(--shadow); }
+.report h2 { font-family: var(--f-display); font-size: 22px; margin: 0 0 12px; }
+.report h3 { font-size: 18px; margin: 34px 0 6px; font-weight: 700; }
+.report h4 { font-size: 15px; margin: 14px 0 6px; }
+.rbrand { font-style: italic; color: var(--r-muted); margin: 0 0 12px; }
+.rcard { border: 1px solid var(--r-line); border-radius: 6px; margin-bottom: 18px; overflow: hidden; }
+.rcard-h { background: var(--r-head); padding: 10px 14px; font-weight: 600; font-size: 16px; border-bottom: 1px solid var(--r-line); }
+.rcard > h4, .rcard > p, .rcard > table { margin-left: 14px; margin-right: 14px; }
+.rcard > table.rkv { margin: 0; width: 100%; }
+.rkv th, .rkv td { padding: 8px 14px; text-align: left; border-bottom: 1px solid var(--r-line); font-size: 13.5px; }
+.rkv th { color: var(--r-muted); font-weight: 500; width: 14%; background: none; position: static; text-transform: none; letter-spacing: 0; font-family: var(--f-body); }
+.rdesc { white-space: pre-wrap; }
+.report table.rtable { border-collapse: collapse; width: 100%; min-width: 0; font-size: 12.5px; margin-bottom: 14px; }
+.report .rtable th { background: var(--r-head); color: var(--r-ink); font-family: var(--f-body); font-size: 12px; text-transform: none; letter-spacing: 0; font-weight: 600; position: static; }
+.report .rtable th, .report .rtable td { border: 1px solid var(--r-line); padding: 6px 8px; text-align: left; vertical-align: top; }
+.report .rtable tbody tr:nth-child(odd) td { background: var(--r-stripe); }
+.report .rtable tbody tr:hover { background: none; }
+.report .rsum { width: auto; min-width: 22rem; }
+.report td.num { font-family: var(--f-mono); }
+.rprops { color: var(--r-muted); font-size: 12.5px; padding: 0 0 6px; }
+.rcm + .rcm { margin-top: 4px; }
+.report .rthreats { table-layout: fixed; }
+.report .rthreats td { overflow-wrap: anywhere; }
+.rp { margin: 0; }
+.rp + .rp { margin-top: 6px; }
+.rmore { color: var(--r-muted); font-size: 11px; }
+.rscroll { overflow-x: auto; }
+@media screen and (max-width: 900px) { .rscroll .rtable { min-width: 760px; } }
+.rwhy { color: var(--r-muted); font-size: 11.5px; margin-top: 2px; }
+.report .muted { color: var(--r-muted); }
+.rdiagram { width: 100%; height: auto; max-height: 70vh; border: 1px solid var(--r-line); border-radius: 6px; background: #fff; }
+.rnode rect { fill: #fff; stroke: #8f9995; stroke-width: 1.2; }
+.rnode.ext rect { fill: #f1f3f2; stroke-dasharray: 5 4; }
+.rnode.k-Hardware rect { stroke: #a3561f; } .rnode.k-System rect { stroke: #10706a; } .rnode.k-Application rect { stroke: #4a56a6; } .rnode.k-Networking rect { stroke: #86680a; }
+.rtag { font-family: var(--f-mono); font-size: 10px; fill: #5c6662; }
+.rname { font-family: var(--f-body); font-size: 13px; font-weight: 600; fill: #1d2320; }
+.redge { stroke: #6b7672; stroke-width: 1.4; fill: none; }
+.redge.plain { stroke-dasharray: 6 4; }
+.rarrow { fill: #6b7672; }
+.rlabel { font-family: var(--f-mono); font-size: 10px; fill: #5c6662; paint-order: stroke; stroke: #fff; stroke-width: 4px; }
+
+@media print {
+  @page { size: A4 landscape; margin: 12mm; }
+  html, body { height: auto; background: #fff !important; }
+  .bar, .no-print, #view-diagram, #view-threats, #view-cms, .overlay { display: none !important; }
+  .app { display: block; height: auto; }
+  .view, .tableview { display: block; overflow: visible; padding: 0 !important; height: auto; }
+  #view-report[hidden] { display: none !important; }
+  .report { box-shadow: none; padding: 0; max-width: none; border-radius: 0; }
+  .rpage { break-before: page; }
+  .rdiagram { max-height: 170mm; }
+  .rentity { break-before: auto; }
+  .rhead { break-after: avoid; break-inside: avoid; }
+
+  .rscroll { overflow: visible; }
+  .report .rtable thead { display: table-header-group; }
+  .report .rtable tr { break-inside: avoid; }
+  .report .rtable tbody tr:nth-child(odd) td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .rcard-h, .report .rtable th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
 .why { grid-column: 1 / -1; display: grid; gap: 3px; margin-top: 4px; }
 .why label { font-size: 11.5px; color: var(--muted); }
 .why textarea { width: 100%; min-width: 12rem; border: 1px solid var(--line); background: var(--panel); border-radius: 5px; padding: 5px 7px; font-size: 13px; resize: vertical; }
@@ -238,6 +314,10 @@ td .sub { font-size: 12px; color: var(--muted); }
   .inspector { border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
   #projName { width: 100%; order: 3; }
   .actions { margin-left: 0; }
+  .ropt-meta { grid-template-columns: minmax(0, 1fr); }
+  .report { padding: 18px 14px 28px; }
+  .report .rtable { font-size: 11.5px; }
+  .ropt-row .btn { margin-left: 0; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
@@ -245,12 +325,14 @@ td .sub { font-size: 12px; color: var(--muted); }
 <body>
 <div class="app">
   <header class="bar">
-    <div class="brand">EMB3D Workbench <small id="ver">EMB3D</small></div>
+    <div class="brand">EMB3D Workbench</div>
+    <div class="ver"><select id="verSel" aria-label="EMB3D version"></select><button class="btn small" id="btnUpd" title="Check emb3d.mitre.org for a newer EMB3D release">Check for updates</button></div>
     <input id="projName" type="text" aria-label="Project name" spellcheck="false">
     <nav class="tabs" role="tablist">
       <button id="tab-diagram" role="tab" aria-selected="true" data-view="diagram">Diagram</button>
       <button id="tab-threats" role="tab" aria-selected="false" data-view="threats">Threats<span class="count" id="openCount"></span></button>
       <button id="tab-cms" role="tab" aria-selected="false" data-view="cms">Countermeasures</button>
+      <button id="tab-report" role="tab" aria-selected="false" data-view="report">Report</button>
     </nav>
     <div class="actions">
       <label class="btn" for="fileIn">Open…</label>
@@ -274,6 +356,7 @@ td .sub { font-size: 12px; color: var(--muted); }
   </main>
   <main class="view tableview" id="view-threats" hidden></main>
   <main class="view tableview" id="view-cms" hidden></main>
+  <main class="view tableview reportview" id="view-report" hidden></main>
 </div>
 <div class="overlay" id="overlay" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
@@ -285,9 +368,10 @@ td .sub { font-size: 12px; color: var(--muted); }
 <div class="overlay" id="dOverlay" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-label="EMB3D details">
     <div class="detail" id="dBody"></div>
-    <footer><button class="btn" id="dBack" hidden>Back</button><button class="btn primary" id="dClose">Close</button></footer>
+    <footer><button class="btn" id="dBack" hidden>Back</button><button class="btn" id="dClose">Close</button><button class="btn primary" id="dAction" hidden></button></footer>
   </div>
 </div>
+<script src="stix.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
