@@ -2,9 +2,9 @@
 
 Embedded-device threat modeling on top of [MITRE EMB3D](https://emb3d.mitre.org/).
 Drag device components onto a board, answer a few questions per component, and the
-matching EMB3D threats and countermeasures appear. Track countermeasure status and
-export the model as an OWASP TM-BOM (Threat Model Library schema v1.0.2), which
-OWASP Threat Dragon can open.
+matching EMB3D threats and countermeasures appear. Track countermeasure status with
+justifications, print a report, and export the model as an OWASP TM-BOM
+(Threat Model Library schema v1.0.2), which OWASP Threat Dragon can open.
 
 No build step, no backend, no dependencies.
 
@@ -19,9 +19,31 @@ No build step, no backend, no dependencies.
 | Path | What it is | Who edits it |
 |---|---|---|
 | `index.html`, `app.js` | The app (plain HTML/JS) | Code changes |
+| `stix.js` | Reads a MITRE EMB3D STIX bundle into the app's data model | Code changes |
 | `library/components.json` | Component palette and questionnaires. Each answer adds EMB3D property IDs (PIDs). | Add or tune components here |
-| `data/emb3d.json` | EMB3D properties, threats, mitigations and their links | Generated, never hand-edited |
-| `tools/build_emb3d.py` | Builds `data/emb3d.json` from the EMB3D STIX bundle | Rerun on each EMB3D release |
+| `data/stix/*.json` | MITRE's STIX releases, byte-for-byte as published | Only via `tools/emb3d_update.py` |
+| `data/stix/index.json` | Available versions, their SHA-256 and the default version | Only via `tools/emb3d_update.py` |
+| `tools/emb3d_update.py` | Checks emb3d.mitre.org for new releases and adds them | Standard library only |
+| `.github/workflows/emb3d-update.yml` | Weekly check; opens an issue when a new release appears | |
+
+## EMB3D versions
+
+Each project records the EMB3D version it was built with, so a model always reproduces
+the same threats. Pick another version from the selector in the header: the app shows
+which threats are added or removed for each component and what MITRE renamed before
+you switch. Countermeasure statuses, decisions and justifications are kept because they
+are stored by threat and mitigation ID.
+
+New releases:
+
+    python3 tools/emb3d_update.py check            # what emb3d.mitre.org has that we don't
+    python3 tools/emb3d_update.py add 2.0.2        # download, verify, register (or: add --latest)
+    python3 tools/emb3d_update.py verify           # hashes + library PIDs, run in CI
+
+The weekly workflow runs `check` and opens an issue proposing the update; a maintainer
+runs `add`, reviews the change summary in the app, and commits. "Check for updates" in
+the app does the same check from the browser and can load a new release for the
+current session only.
 
 ## Rules
 
@@ -34,11 +56,12 @@ No build step, no backend, no dependencies.
 6. A threat handled with countermeasures is Mitigated when one of them is Implemented,
    Not applicable when all of them are, and Open otherwise.
 
-## Updating EMB3D
+## Report
 
-    python3 tools/build_emb3d.py emb3d-stix-<version>.json data/emb3d.json
-
-Then check that every PID in `library/components.json` still exists.
+The Report tab follows the layout of OWASP Threat Dragon's report: cover card, executive
+summary with threat counts, the diagram, then one threat table per component. EMB3D has no
+severity, so open threats are counted by EMB3D evidence level instead. "Print / Save as PDF"
+uses the browser's print dialog (A4 landscape).
 
 ## Saving
 
