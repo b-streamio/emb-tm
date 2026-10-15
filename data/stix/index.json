@@ -1,0 +1,19 @@
+{
+  "default": "2.0.1",
+  "versions": [
+    {
+      "version": "2.0.1",
+      "file": "emb3d-stix-2.0.1.json",
+      "source": "https://emb3d.mitre.org/assets/emb3d-stix-2.0.1.json",
+      "sha256": "3fed4b36a8907cefcfcb2ae051e0dae87bfdb18d23ffa780731e3dda0cebc1d8",
+      "added": "2026-10-15"
+    },
+    {
+      "version": "2.0",
+      "file": "emb3d-stix-2.0.json",
+      "source": "https://emb3d.mitre.org/assets/emb3d-stix-2.0.json",
+      "sha256": "127ebc75e4ba9f03f427fb54df3af9cca12c0716c9c9f0f47ed4658c9f932ff6",
+      "added": "2026-10-15"
+    }
+  ]
+}
