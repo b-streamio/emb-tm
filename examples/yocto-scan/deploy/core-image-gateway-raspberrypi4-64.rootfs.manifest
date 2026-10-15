@@ -1,0 +1,14 @@
+base-files cortexa72 3.0.14-r0
+busybox cortexa72 1.36.1-r0
+openssh-sshd cortexa72 9.6p1-r0
+openssh-ssh cortexa72 9.6p1-r0
+openssh-keygen cortexa72 9.6p1-r0
+rauc cortexa72 1.11.3-r0
+rauc-hawkbit-updater cortexa72 1.3-r0
+mosquitto cortexa72 2.0.18-r0
+kernel-image-image-6.6.22-v8 cortexa72 1:6.6.22+git-r0
+kernel-module-brcmfmac-6.6.22-v8 cortexa72 1:6.6.22+git-r0
+systemd cortexa72 1:255.4-r0
+libssl3 cortexa72 3.2.1-r0
+ca-certificates cortexa72 20240203-r0
+u-boot-env cortexa72 2024.01-r0

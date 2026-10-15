@@ -1,0 +1,26 @@
+#
+# $MACHINE [2 operations]
+#   set /work/build/conf/local.conf:12
+#     "raspberrypi4-64"
+#   set? /work/layers/poky/meta/conf/bitbake.conf:155
+#     "qemux86-64"
+# pre-expansion value:
+#   "raspberrypi4-64"
+MACHINE="raspberrypi4-64"
+#
+# $IMAGE_FEATURES [3 operations]
+#   set /work/layers/poky/meta/classes-recipe/core-image.bbclass:60
+#     ""
+#   append /work/layers/meta-acme/recipes-core/images/acme-image.bb:8
+#     "ssh-server-openssh"
+#   :append /work/build/conf/local.conf:40
+#     " debug-tweaks"
+# pre-expansion value:
+#   "ssh-server-openssh debug-tweaks"
+IMAGE_FEATURES="ssh-server-openssh debug-tweaks"
+#
+# $UBOOT_SIGN_ENABLE
+#   set /work/layers/meta-acme/conf/distro/acme.conf:31
+#     "1"
+UBOOT_SIGN_ENABLE="1"
+export PATH="/usr/bin:/bin"

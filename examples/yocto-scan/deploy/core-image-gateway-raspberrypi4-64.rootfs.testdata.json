@@ -1,0 +1,22 @@
+{
+  "MACHINE": "raspberrypi4-64",
+  "SOC_FAMILY": "rpi",
+  "MACHINEOVERRIDES": "aarch64:armv8a:rpi:raspberrypi4-64",
+  "MACHINE_FEATURES": "apm usbhost keyboard vfat ext2 screen touchscreen alsa bluetooth wifi sdio vc4graphics",
+  "DISTRO": "poky",
+  "DISTRO_VERSION": "5.0.4",
+  "DISTRO_CODENAME": "scarthgap",
+  "DISTRO_FEATURES": "acl alsa bluetooth ipv6 usbhost wifi xattr pam systemd usrmerge rauc",
+  "IMAGE_BASENAME": "core-image-gateway",
+  "PN": "core-image-gateway",
+  "IMAGE_FEATURES": "ssh-server-openssh package-management",
+  "IMAGE_FSTYPES": "tar.gz wic.bz2 wic.bmap",
+  "SERIAL_CONSOLES": "115200;ttyS0",
+  "PREFERRED_PROVIDER_virtual/kernel": "linux-raspberrypi",
+  "PREFERRED_PROVIDER_virtual/bootloader": "u-boot",
+  "UBOOT_SIGN_ENABLE": "1",
+  "UBOOT_SIGN_KEYNAME": "gateway-fit",
+  "TUNE_FEATURES": "aarch64 crc cortexa72",
+  "RAUC_BUNDLE_FORMAT": "verity",
+  "BUILDNAME": "20261015120000"
+}

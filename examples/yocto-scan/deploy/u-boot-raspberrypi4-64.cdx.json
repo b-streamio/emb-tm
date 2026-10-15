@@ -1,0 +1,36 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-10-15T12:00:00Z",
+    "component": {
+      "type": "firmware",
+      "name": "u-boot-raspberrypi4-64",
+      "version": "2024.01"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "bom-ref": "u-boot@2024.01",
+      "name": "u-boot",
+      "version": "2024.01",
+      "purl": "pkg:yocto/u-boot@2024.01",
+      "cpe": "cpe:2.3:a:denx:u-boot:2024.01:*:*:*:*:*:*:*"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "id": "CVE-2024-57256",
+      "source": {
+        "name": "NVD"
+      },
+      "affects": [
+        {
+          "ref": "u-boot@2024.01"
+        }
+      ]
+    }
+  ]
+}
