@@ -112,7 +112,7 @@
         "separation": [
           { "if": { "var": "DISTRO_FEATURES", "re": "\\b(selinux|apparmor|smack)\\b" }, "value": "accounts" },
           { "if": { "var": "IMAGE_FEATURES", "re": "\\b(debug-tweaks|empty-root-password)\\b" }, "value": "none", "review": "root has no password; services' users not checked" },
-          { "if": { "file": "/etc/passwd", "re": "^(?!root:)[a-z_][a-z0-9_-]*:[^:]*:[1-9][0-9]{2,}:" }, "value": "accounts" },
+          { "if": { "file": "/etc/passwd", "re": "^[a-z_][a-z0-9_-]*:[^:]*:[1-9][0-9]{2,}:" }, "value": "accounts" },
           { "value": "accounts", "review": "assumed: Linux user separation; check which users the services run as" }
         ],
         "mmu": [
