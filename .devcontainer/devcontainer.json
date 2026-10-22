@@ -1,0 +1,12 @@
+{
+  "name": "emb3d-tm",
+  "image": "mcr.microsoft.com/devcontainers/rust:1-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {}
+  },
+  "postCreateCommand": "rustup target add wasm32-unknown-unknown && make tools",
+  "forwardPorts": [8000],
+  "customizations": {
+    "vscode": { "extensions": ["rust-lang.rust-analyzer"] }
+  }
+}
