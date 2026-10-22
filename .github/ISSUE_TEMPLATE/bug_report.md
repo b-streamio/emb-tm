@@ -1,0 +1,14 @@
+---
+name: Bug report
+about: Something does not work as described
+title: ""
+labels: ["bug"]
+---
+
+<!-- Security problems: email security@b-stream.io instead (SECURITY.md). -->
+
+**What happened, and what did you expect?**
+
+**How to reproduce it** (steps, and if you can a small project or scanner input file)
+
+**Version and environment** (`emb3d-wb --version` or release, browser, operating system)
