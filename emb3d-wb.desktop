@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=EMB3D Workbench
+GenericName=Threat modeling
+Comment=Embedded-device threat modeling on MITRE EMB3D, offline
+Exec=emb3d-wb app
+Icon=emb3d-wb
+Terminal=false
+# The window `emb3d-wb app` opens (Chromium --app, Wayland, default profile),
+# so the dock shows this entry's icon for it.
+StartupWMClass=chrome-127.0.0.1__-Default
+Categories=Development;
+Keywords=threat model;EMB3D;TM-BOM;SBOM;security;
