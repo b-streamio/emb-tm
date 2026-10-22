@@ -1,0 +1,15 @@
+{
+  "$comment": "Templates offered by New in the app; the first opens on a first visit. A new example also goes in FILES in the Makefile.",
+  "examples": [
+    {
+      "file": "system/connected-vision-system.project.json",
+      "name": "Connected vision system",
+      "description": "IP cameras, an edge AI unit, a gateway and a router to the cloud, one page per device."
+    },
+    {
+      "file": "yocto-scan/core-image-gateway.project.json",
+      "name": "Yocto gateway image",
+      "description": "A Raspberry Pi gateway as emb3d-wb scan models it, with evidence and answers to review."
+    }
+  ]
+}
