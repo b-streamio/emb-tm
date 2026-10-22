@@ -1,0 +1,4 @@
+# Leptos type-erases component boundaries: about 10% less wasm, same
+# behaviour.
+[target.wasm32-unknown-unknown]
+rustflags = ["--cfg", "erase_components"]

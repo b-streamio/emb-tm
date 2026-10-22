@@ -1,0 +1,37 @@
+[package]
+name         = "emb3d-wb"
+description  = "EMB3D Workbench: embedded-device threat modeling on MITRE EMB3D, as an offline PWA"
+version      = "0.2.0"
+edition      = "2021"
+license      = "GPL-2.0-only"
+rust-version = "1.85"
+
+[dependencies]
+js-sys               = "0.3"
+leptos               = { version = "0.8", features = ["csr"] }
+serde                = { version = "1", features = ["derive"] }
+serde_json           = "1"
+wasm-bindgen         = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys              = { version = "0.3", features = [
+    "Blob", "BlobPropertyBag", "Clipboard", "ClipboardEvent", "DataTransfer", "Document", "DomRect",
+    "DomTokenList", "DragEvent", "Element", "File", "FileList", "HtmlAnchorElement", "HtmlDetailsElement",
+    "HtmlElement", "HtmlInputElement", "KeyboardEvent", "Navigator", "PointerEvent", "ReadableStream", "ReadableWritablePair", "Response",
+    "Selection", "ServiceWorkerContainer", "Storage", "Url", "Window",
+] }
+
+[features]
+# `make bin`: embed dist/ in the command line for `emb3d-wb app`.
+pwa = []
+
+# The command line: native targets only.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode"] }
+
+# Small wasm.
+[profile.release]
+codegen-units = 1
+lto           = true
+opt-level     = "z"
+panic         = "abort"
+strip         = true
