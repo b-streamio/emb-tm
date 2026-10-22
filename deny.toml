@@ -1,0 +1,42 @@
+# cargo-deny policy (same rules as the b-stream website): licenses and sources.
+# Run: cargo deny check licenses bans sources
+#
+# This crate is GPL-2.0-only, so every dependency must be usable under a
+# licence compatible with GPLv2: anything not in the allow list is denied.
+# Apache-2.0 is left out on purpose (incompatible with GPLv2-only); dual
+# "MIT OR Apache-2.0" crates pass through MIT. Copyleft licences (GPL, AGPL,
+# LGPL, EUPL, CDDL, MPL, OSL, SSPL) are excluded by omission. Keep the list
+# minimal: an allowance nobody uses is reported as "license-not-encountered".
+
+[graph]
+all-features = false
+
+[licenses]
+version = 2
+confidence-threshold = 0.8
+allow = [
+    "MIT",
+    "BSL-1.0",
+    "Unicode-3.0",
+    "Zlib",
+    "Unlicense",
+]
+
+[[licenses.exceptions]]
+# This crate itself.
+name = "emb3d-wb"
+allow = ["GPL-2.0-only"]
+
+[[licenses.exceptions]]
+# Public-domain dedication; build-time only (proc-macro of Leptos' wasm_split).
+name = "base16"
+allow = ["CC0-1.0"]
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
