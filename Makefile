@@ -7,12 +7,13 @@
 # pick one no other local server uses.
 PORT := 8000
 
-# What the app fetches besides the wasm, its JavaScript glue, index.html and
-# data/. Keep in step with SHELL in sw.js (the offline cache).
-FILES := sw.js style.css manifest.webmanifest icon.svg icon-192.png icon-512.png \
-	library/components.json examples/index.json \
-	examples/system/connected-vision-system.project.json \
-	examples/yocto-scan/core-image-gateway.project.json
+# What the app fetches besides the wasm and its JavaScript glue: the shell in
+# web/ (copied to the top of dist/), data/ and these files. Keep in step with
+# SHELL in web/sw.js (the offline cache).
+WEB := sw.js style.css manifest.webmanifest icon.svg icon-192.png icon-512.png
+FILES := library/components.json examples/index.json \
+	examples/system/surveillance-alarm-system.project.json \
+	examples/yocto-scan/alarm-hub-image.project.json
 
 WASM := target/wasm32-unknown-unknown/release/emb3d-wb.wasm
 # wasm-bindgen must be the version in Cargo.lock; both tools are installed
@@ -31,8 +32,9 @@ DENY := target/tools/cargo-deny-0.20.2/bin/cargo-deny
 CARGO_LLVM_COV := target/tools/cargo-llvm-cov-0.9.1/bin/cargo-llvm-cov
 CYCLONEDX := target/tools/cargo-cyclonedx-0.5.9/bin/cargo-cyclonedx
 ABOUT := target/tools/cargo-about-0.9.2/bin/cargo-about
-# Conventional Commits → next version and CHANGELOG.md (cliff.toml).
+# Conventional Commits → next version and CHANGELOG.md (.config/cliff.toml).
 CLIFF := target/tools/git-cliff-2.14.2/bin/git-cliff
+GIT_CLIFF := $(CLIFF) --config .config/cliff.toml
 
 # Minimum line coverage of the code that runs natively (`make coverage`).
 # The browser-only code (Leptos views and the browser API wrappers in src/ui/)
@@ -51,7 +53,7 @@ COMMIT_RE := ^(feat|fix|perf|refactor|revert|docs|test|build|ci|style|chore)(\([
 BASE ?= origin/main
 
 BIN := target/release/emb3d-wb
-# `make install`: the program, its icon and its menu entry (emb3d-wb.desktop).
+# `make install`: the program, its icon and its menu entry (web/emb3d-wb.desktop).
 PREFIX ?= $(HOME)/.local
 
 help: ## Show available commands
@@ -64,8 +66,9 @@ build: $(BINDGEN) $(WASM_OPT) ## Release build of the PWA → dist/
 	mkdir -p dist
 	$(BINDGEN) --target web --no-typescript --out-dir dist $(WASM)
 	$(WASM_OPT) $(WASM_OPT_FLAGS) -o dist/emb3d-wb_bg.wasm dist/emb3d-wb_bg.wasm
+	cp $(addprefix web/,$(WEB)) dist/
 	tar cf - $(FILES) data | tar xf - -C dist
-	sed "s|@STYLE_SRI@|sha384-$$(openssl dgst -sha384 -binary style.css | openssl base64 -A)|" index.html > dist/index.html
+	sed "s|@STYLE_SRI@|sha384-$$(openssl dgst -sha384 -binary web/style.css | openssl base64 -A)|" web/index.html > dist/index.html
 	gzip -9nf dist/emb3d-wb_bg.wasm dist/data/stix/emb3d-stix-*.json
 
 bin: build ## Self-contained emb3d-wb with the app embedded → target/release/emb3d-wb
@@ -78,12 +81,14 @@ app: bin ## Serve the app and open it in its own window (Chromium, Chrome or Edg
 	$(BIN) app --port $(PORT)
 
 install: bin ## Install emb3d-wb and its menu entry into PREFIX (default ~/.local)
+	@# A running app server keeps serving the old version; stop it so the next launch is new.
+	@pkill -f '^$(PREFIX)/bin/emb3d-wb app' && echo 'Stopped the running EMB3D Workbench server.' || true
 	install -Dm755 $(BIN) $(PREFIX)/bin/emb3d-wb
-	install -Dm644 icon.svg $(PREFIX)/share/icons/hicolor/scalable/apps/emb3d-wb.svg
+	install -Dm644 web/icon.svg $(PREFIX)/share/icons/hicolor/scalable/apps/emb3d-wb.svg
 	mkdir -p $(PREFIX)/share/applications
 	sed -e "s|^Exec=emb3d-wb |Exec=$(PREFIX)/bin/emb3d-wb |" \
 		-e "s|^Icon=emb3d-wb$$|Icon=$(PREFIX)/share/icons/hicolor/scalable/apps/emb3d-wb.svg|" \
-		emb3d-wb.desktop > $(PREFIX)/share/applications/emb3d-wb.desktop
+		web/emb3d-wb.desktop > $(PREFIX)/share/applications/emb3d-wb.desktop
 
 uninstall: ## Remove what make install put into PREFIX
 	rm -f $(PREFIX)/bin/emb3d-wb $(PREFIX)/share/icons/hicolor/scalable/apps/emb3d-wb.svg \
@@ -119,7 +124,7 @@ coverage: $(CARGO_LLVM_COV) ## Tests with line coverage (needs the llvm-tools-pr
 
 security: $(AUDIT) $(DENY) ## Known vulnerabilities (RustSec), licences and sources of every dependency
 	$(AUDIT) audit
-	$(DENY) deny check licenses bans sources
+	$(DENY) deny --config .config/deny.toml check licenses bans sources
 
 sbom: $(CYCLONEDX) ## CycloneDX SBOM of the program and the app → target/sbom/emb3d-wb.cdx.json
 	$(CYCLONEDX) cyclonedx --format json --spec-version 1.5 --target all --override-filename emb3d-wb.cdx
@@ -129,8 +134,8 @@ sbom: $(CYCLONEDX) ## CycloneDX SBOM of the program and the app → target/sbom/
 package: bin sbom $(ABOUT) ## Release files of VERSION → target/release-files (archives, SBOM, notices, SHA256SUMS)
 	rm -rf $(REL)
 	mkdir -p $(REL)/emb3d-wb-$(VERSION)
-	$(ABOUT) about generate --locked -o $(REL)/THIRD-PARTY-LICENSES.txt about.hbs
-	cp $(BIN) LICENSE README.md CHANGELOG.md SECURITY.md emb3d-wb.desktop icon.svg \
+	$(ABOUT) about generate --locked -c .config/about.toml -o $(REL)/THIRD-PARTY-LICENSES.txt .config/about.hbs
+	cp $(BIN) LICENSE README.md CHANGELOG.md .github/SECURITY.md web/emb3d-wb.desktop web/icon.svg \
 		$(REL)/THIRD-PARTY-LICENSES.txt $(REL)/emb3d-wb-$(VERSION)/
 	$(TAR) -C $(REL) -cf - emb3d-wb-$(VERSION) | gzip -9n > $(REL)/emb3d-wb-$(VERSION)-$$(uname -m)-linux.tar.gz
 	cp LICENSE $(REL)/THIRD-PARTY-LICENSES.txt dist/
@@ -153,12 +158,12 @@ commit-check: ## Commits in BASE..HEAD are Conventional Commits and signed off (
 
 release: $(CLIFF) ## From the commits since the last tag: version, CHANGELOG.md, release commit and tag
 	@test -z "$$(git status --porcelain)" || { echo 'Commit or stash your changes first.'; exit 1; }
-	@next=$$($(CLIFF) --bumped-version 2>/dev/null); \
+	@next=$$($(GIT_CLIFF) --bumped-version 2>/dev/null); \
 	if [ "$$next" = "$$(git describe --tags --abbrev=0 2>/dev/null)" ]; then \
 		echo "No commit for the changelog since $$next: nothing to release."; exit 1; fi; \
 	sed -i "0,/^version *=/s/^version *= *\"[^\"]*\"/version      = \"$${next#v}\"/" Cargo.toml; \
 	cargo update --workspace --offline --quiet; \
-	$(CLIFF) --tag "$$next" --output CHANGELOG.md 2>/dev/null; \
+	$(GIT_CLIFF) --tag "$$next" --output CHANGELOG.md 2>/dev/null; \
 	git commit -q -s -m "chore(release): $$next" Cargo.toml Cargo.lock CHANGELOG.md; \
 	git tag -a "$$next" -m "emb3d-wb $${next#v}"; \
 	echo "Released $$next locally. Publish it with: git push origin HEAD $$next, then run the release workflow."
