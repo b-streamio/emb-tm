@@ -1,5 +1,5 @@
 {
-  "$comment": "Rules used by 'emb3d-wb scan' to turn Yocto build outputs and CycloneDX SBOMs into a Workbench project. See README, section 'Yocto scanner rules'.",
+  "$comment": "Rules used by 'emb3d-wb scan' to turn Yocto build outputs and CycloneDX SBOMs into a Workbench project. See library/README.md.",
   "version": "0.1",
   "components": [
     {
@@ -51,6 +51,11 @@
       "id": "usb", "type": "periph", "name": "USB",
       "when": { "any": [ { "var": "MACHINE_FEATURES", "word": "usbhost" }, { "var": "MACHINE_FEATURES", "word": "usbgadget" }, { "kconfig": "CONFIG_USB_SUPPORT", "eq": "y" } ] },
       "review": "is the USB port reachable on the enclosure?"
+    },
+    {
+      "id": "modem", "type": "periph", "name": "Cellular modem", "version": "modemmanager|ofono",
+      "when": { "pkg": "modemmanager|ofono|libqmi.*|libmbim.*" },
+      "review": "the modem runs its own firmware: is it updated, and is its AT/diagnostic port reachable?"
     },
     {
       "id": "can", "type": "periph", "name": "CAN bus",
@@ -261,6 +266,17 @@
           { "if": { "file": "/etc/mosquitto/mosquitto.conf|/etc/mosquitto/conf.d/*", "re": "^\\s*certfile\\s" }, "value": true },
           { "value": false }
         ],
+        "route": [ { "value": false } ]
+      }
+    },
+    {
+      "id": "rtsp", "type": "netsvc", "name": "RTSP video server", "version": "gst-rtsp-server|gstreamer1.0-rtsp-server|libgstrtspserver.*|live555.*|mediamtx",
+      "when": { "pkg": "gst-rtsp-server|gstreamer1.0-rtsp-server|libgstrtspserver.*|live555.*|mediamtx" },
+      "answers": {
+        "sensitive": [ { "value": true } ],
+        "no_auth": [ { "value": true, "review": "RTSP servers often accept anyone: check that streams need credentials" } ],
+        "no_enc": [ { "value": true, "review": "plain RTSP is unencrypted: check for RTSPS or SRTP" } ],
+        "crypto": [ { "value": false, "review": "set to Yes if streams use RTSPS or SRTP" } ],
         "route": [ { "value": false } ]
       }
     },

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 //! Yocto image + CycloneDX SBOMs → Workbench project. Deterministic: the
-//! rules are in `library/yocto-rules.json` (README, "Scanner rules").
+//! rules are in `library/yocto-rules.json` (`library/README.md`).
 //!
 //! Inputs, all optional (the more the better):
 //! - variables: `<image>.testdata.json` (written by every image build) or

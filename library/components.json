@@ -14,7 +14,7 @@
       "name": "Device",
       "group": "System",
       "tag": "DEV",
-      "hint": "A complete device of the solution (AI unit, gateway, router, camera). It opens its own design page; set a quantity for identical units.",
+      "hint": "A complete device of the solution (camera, sensor, hub, router). It opens its own design page; set a quantity for identical units.",
       "base": [],
       "questions": [],
       "container": true

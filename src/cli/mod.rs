@@ -49,7 +49,7 @@ EMB3D Workbench command line. Same engine as the browser app.
       --fulltext             full MITRE threat descriptions in the report
       --fail-on-open <n>     exit 2 when more than n threats are open (CI gate)
 
-Data (library/, data/stix/, style.css) is read from $EMB3D_WB_ROOT, by default the source tree.
+Data (library/, data/stix/, web/style.css) is read from $EMB3D_WB_ROOT, by default the source tree.
 ";
 
 /// Positional arguments and `--key [value]` options (repeatable; `-o` is `--o`).
@@ -422,13 +422,13 @@ fn summary_json(s: &Summary, version: &str) -> Value {
 
 /// A report that opens anywhere: the app's report styles inlined, no web fonts.
 fn standalone_html(p: &Project, m: &Model, o: ReportOpts) -> Result<String, String> {
-    let css = read(&root().join("style.css"))?;
+    let css = read(&root().join("web/style.css"))?;
     let block = css
         .split_once("/* report-css:begin")
         .and_then(|(_, rest)| rest.split_once("*/"))
         .and_then(|(_, rest)| rest.split_once("/* report-css:end */"))
         .map(|(block, _)| block)
-        .ok_or("style.css: report-css markers not found")?;
+        .ok_or("web/style.css: report-css markers not found")?;
     Ok(format!(
         r#"<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
