@@ -260,7 +260,10 @@ fn validate_library_versions_and_usage() {
     assert_eq!(run(&[]).0, 0);
     assert_eq!(run(&["nope"]).0, 1);
     let (code, text) = run(&["--version"]);
-    assert_eq!((code, text.trim()), (0, concat!("emb3d-wb ", env!("CARGO_PKG_VERSION"))));
+    assert_eq!(
+        (code, text.trim()),
+        (0, concat!("emb3d-wb ", env!("CARGO_PKG_VERSION")))
+    );
     let (code, text) = run(&["scan", "-o", "x.json"]);
     assert!(code == 1 && text.contains("No inputs found"));
     let (code, text) = run(&["validate", "Cargo.toml"]);
