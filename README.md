@@ -63,8 +63,19 @@ and `wasm-opt` into `target/tools/`, not system-wide.
     make serve     # make bin, then emb3d-wb app --no-open (http://127.0.0.1:8000)
     make install   # make bin, then install it with its menu entry (PREFIX, default ~/.local)
     make test      # unit tests (tests/unit/) + command-line tests (tests/cli.rs)
-    make lint      # rustfmt + clippy
-    make security  # cargo-audit + cargo-deny (licences, sources)
+    make lint      # rustfmt + clippy (static analysis), warnings are errors
+    make coverage  # tests with line coverage; fails under the minimum (90%)
+    make security  # cargo-audit (RustSec) + cargo-deny (licences, sources)
+    make sbom      # CycloneDX SBOM → target/sbom/
+    make package   # release files: program, PWA, SBOM, third-party licences, SHA256SUMS
+    make release   # next version and CHANGELOG.md from the commit messages, commit + tag
+
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`,
+`fix:`, `feat!:` …): they decide the next version and become the changelog, see
+[CONTRIBUTING.md](CONTRIBUTING.md). The pipelines in `.github/workflows/` run on Gitea and Forgejo
+(Codeberg) Actions: checks on every push and pull request (lint, tests, coverage, cargo-audit,
+cargo-deny, Trivy, SBOM, build), and a release workflow started by a maintainer that versions,
+checks and publishes. Release archives are reproducible.
 
 `dist/` is self-contained (about 850 KB: the wasm and the EMB3D releases are gzip files that the
 page inflates itself, so no server compression is needed). Browsers keep all of it in their
