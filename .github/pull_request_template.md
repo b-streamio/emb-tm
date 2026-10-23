@@ -12,5 +12,5 @@
 
 - [ ] `make lint test coverage security` passes
 - [ ] Tests cover the change (new behaviour, or the bug being fixed)
-- [ ] `CHANGELOG.md` has a line under `[Unreleased]`, if users will notice the change
+- [ ] Commit messages follow Conventional Commits (`feat: …`, `fix: …`): they become the changelog
 - [ ] Commits are signed off (`git commit -s`)

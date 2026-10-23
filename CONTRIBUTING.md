@@ -28,8 +28,8 @@ The project lives on Codeberg: <https://codeberg.org/anischali/emb3d-tm>.
 
        make lint test coverage security
 
-5. Commit with a sign-off (`git commit -s`, see below) and a message that says what changed and
-   why, in the imperative ("Escape flow labels in the report").
+5. Commit with a sign-off (`git commit -s`, see below) and a
+   [Conventional Commits](https://www.conventionalcommits.org/) message (see below).
 6. Push the branch to your fork and open a pull request against `main`. The template asks for
    what changed, how you tested it and the changelog line.
 7. The pipeline runs on the pull request. A maintainer reviews it; at least one approval and a
@@ -44,14 +44,36 @@ The project lives on Codeberg: <https://codeberg.org/anischali/emb3d-tm>.
   fall below the minimum in the `Makefile` (`make coverage`).
 - **No warnings.** `make lint` runs rustfmt and clippy with warnings as errors, for the native and
   the wasm build. `unsafe` code is not accepted.
-- **A changelog line** under `## [Unreleased]` in [CHANGELOG.md](CHANGELOG.md) for anything a user
-  would notice.
 - **Licence headers.** New source files start with `SPDX-License-Identifier: GPL-2.0-only`
   in a comment.
 - **Dependencies, rarely.** Prefer the standard library. A new crate must be maintained, needed,
   and usable under a licence compatible with GPL-2.0-only (MIT, BSD, Zlib…; not Apache-2.0 only).
   `make security` checks this.
 - **Documentation.** User-visible changes update the README.
+
+### Commit messages decide the version and the changelog
+
+Every commit follows [Conventional Commits](https://www.conventionalcommits.org/): a type, an
+optional scope, and what changed in the imperative, for example
+
+    feat(scanner): read U-Boot environment files
+    fix: escape flow labels in the report
+    fix(security): refuse paths outside the embedded app
+
+| Type | Changelog | Next version |
+|---|---|---|
+| `feat` | Added | minor (0.2.0 → 0.3.0) |
+| `fix` | Fixed (`fix(security)`: Security) | patch (0.2.0 → 0.2.1) |
+| `perf`, `refactor`, `revert` | Changed | patch |
+| `docs` | Documentation | patch |
+| `test`, `build`, `ci`, `style`, `chore` | not listed | none on their own |
+
+A breaking change (project or TM-BOM file format, command line, scanner rules) adds `!` after the
+type (`feat!: …`) or a `BREAKING CHANGE: …` footer: it raises the major version, or the minor one
+while the version is below 1.0. The body explains why, when it is not obvious.
+[CHANGELOG.md](CHANGELOG.md) and the version are generated from these messages at each release
+([git-cliff](https://git-cliff.org), `cliff.toml`), so never edit them by hand. The pipeline
+checks every commit of a pull request (`make commit-check`).
 
 ### Developer Certificate of Origin
 
@@ -68,19 +90,15 @@ and the `llvm-tools-preview` component. The first build installs its pinned tool
 
 ## Releases (maintainers)
 
-Versions follow [Semantic Versioning](https://semver.org/): a breaking change to the project or
-TM-BOM file format, the command line or the scanner rules raises the major version, a new feature
-the minor version, a fix the patch version.
+Versions follow [Semantic Versioning](https://semver.org/) and come from the commit messages.
+To release, run the **release** workflow on `main` ("Run workflow" in the repository's Actions).
+It computes the next version from the commits since the last tag (`make release`: `Cargo.toml`,
+`CHANGELOG.md`, a `chore(release): vX.Y.Z` commit and the tag), runs every check, pushes the
+commit and the tag, and publishes the release: the Linux program, the PWA archive, the SBOM, the
+third-party licences and `SHA256SUMS`, with the version's changelog as release notes, and the same
+files in the project's package registry. To release from your machine instead, run
+`make release`, push with `git push origin main vX.Y.Z`, then run the workflow: it publishes the
+tag it finds on `main`.
 
-1. Set the version in `Cargo.toml`, run `cargo check` (it updates `Cargo.lock`), and rename
-   `## [Unreleased]` in `CHANGELOG.md` to `## [X.Y.Z] - YYYY-MM-DD` with a fresh empty
-   `[Unreleased]` above it.
-2. Merge that to `main`, then tag the merge commit and push the tag:
-
-       git tag -s vX.Y.Z -m "emb3d-wb X.Y.Z"
-       git push origin vX.Y.Z
-
-3. The release pipeline checks that the tag matches `Cargo.toml` and the changelog, runs every
-   check, then publishes the release on Codeberg: the Linux binary, the PWA archive, the SBOM and
-   `SHA256SUMS`, with the changelog section as release notes, and the same files in the
-   project's package registry.
+The workflow needs a `RELEASE_TOKEN` secret: a maintainer's access token with the
+`write:repository` and `write:package` scopes, allowed to push to `main`.
