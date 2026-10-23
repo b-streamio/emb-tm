@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 .DEFAULT_GOAL := help
-.PHONY: help build bin serve app install uninstall tools test lint coverage security sbom package release-check
+.PHONY: help build bin serve app install uninstall tools test lint coverage security sbom package \
+	commit-check release release-check
 
 # Port of `make serve` and `make app`. An installed app loads from it, so
 # pick one no other local server uses.
@@ -30,6 +31,8 @@ DENY := target/tools/cargo-deny-0.20.2/bin/cargo-deny
 LLVM_COV := target/tools/cargo-llvm-cov-0.9.1/bin/cargo-llvm-cov
 CYCLONEDX := target/tools/cargo-cyclonedx-0.5.9/bin/cargo-cyclonedx
 ABOUT := target/tools/cargo-about-0.9.2/bin/cargo-about
+# Conventional Commits → next version and CHANGELOG.md (cliff.toml).
+CLIFF := target/tools/git-cliff-2.14.2/bin/git-cliff
 
 # Minimum line coverage of the code that runs natively (`make coverage`).
 # The Leptos views (src/ui/ apart from web.rs) only run in a browser and are
@@ -42,6 +45,9 @@ VERSION := $(shell awk -F'"' '/^version/ { print $$2; exit }' Cargo.toml)
 SOURCE_DATE_EPOCH ?= $(shell git log -1 --format=%ct 2>/dev/null || echo 0)
 TAR := tar --sort=name --mtime=@$(SOURCE_DATE_EPOCH) --owner=0 --group=0 --numeric-owner
 REL := target/release-files
+# Commit subjects (Conventional Commits) and the base `commit-check` compares with.
+COMMIT_RE := ^(feat|fix|perf|refactor|revert|docs|test|build|ci|style|chore)(\([a-z0-9._-]+\))?!?: .+
+BASE ?= origin/main
 
 BIN := target/release/emb3d-wb
 # `make install`: the program, its icon and its menu entry (emb3d-wb.desktop).
@@ -49,7 +55,7 @@ PREFIX ?= $(HOME)/.local
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
-		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
+		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
 build: $(BINDGEN) $(WASM_OPT) ## Release build of the PWA → dist/
 	cargo build --release --locked --target wasm32-unknown-unknown
@@ -82,7 +88,7 @@ uninstall: ## Remove what make install put into PREFIX
 	rm -f $(PREFIX)/bin/emb3d-wb $(PREFIX)/share/icons/hicolor/scalable/apps/emb3d-wb.svg \
 		$(PREFIX)/share/applications/emb3d-wb.desktop
 
-tools: $(BINDGEN) $(WASM_OPT) $(AUDIT) $(DENY) $(LLVM_COV) $(CYCLONEDX) $(ABOUT) ## Pinned tools, into target/tools (not system-wide)
+tools: $(BINDGEN) $(WASM_OPT) $(AUDIT) $(DENY) $(LLVM_COV) $(CYCLONEDX) $(ABOUT) $(CLIFF) ## Pinned tools, into target/tools (not system-wide)
 
 $(BINDGEN):
 	cargo install --locked --root $(@D)/.. wasm-bindgen-cli@$(BINDGEN_VERSION)
@@ -91,7 +97,7 @@ $(WASM_OPT):
 	cargo install --locked --root $(@D)/.. wasm-opt@$(WASM_OPT_VERSION)
 
 # target/tools/<crate>-<version>/bin/<crate>
-$(AUDIT) $(DENY) $(LLVM_COV) $(CYCLONEDX) $(ABOUT):
+$(AUDIT) $(DENY) $(LLVM_COV) $(CYCLONEDX) $(ABOUT) $(CLIFF):
 	cargo install --locked --root $(@D)/.. $$(basename $(@D:/bin=)| sed 's/-\([0-9][^-]*\)$$/@\1/')
 
 test: ## Unit tests (tests/unit) and command-line tests (tests/cli.rs)
@@ -129,6 +135,28 @@ package: bin sbom $(ABOUT) ## Release files of VERSION → target/release-files 
 	cp target/sbom/emb3d-wb.cdx.json $(REL)/emb3d-wb-$(VERSION).cdx.json
 	awk '/^## \[/ { f = index($$0, "[$(VERSION)]") } f' CHANGELOG.md > $(REL)/NOTES.md
 	cd $(REL) && sha256sum *.tar.gz *.cdx.json THIRD-PARTY-LICENSES.txt > SHA256SUMS
+
+commit-check: ## Commits in BASE..HEAD are Conventional Commits and signed off (BASE=origin/main)
+	@bad=0; for c in $$(git rev-list --no-merges $(BASE)..HEAD); do \
+		subject=$$(git log -1 --format=%s $$c); \
+		echo "$$subject" | grep -Eq '$(COMMIT_RE)' \
+			|| { echo "$$c: not a Conventional Commit: $$subject"; bad=1; }; \
+		git log -1 --format=%B $$c | grep -q '^Signed-off-by: ' \
+			|| { echo "$$c: no Signed-off-by line (git commit -s): $$subject"; bad=1; }; \
+	done; \
+	[ $$bad = 0 ] && echo "Commits since $(BASE) are fine."; exit $$bad
+
+release: $(CLIFF) ## From the commits since the last tag: version, CHANGELOG.md, release commit and tag
+	@test -z "$$(git status --porcelain)" || { echo 'Commit or stash your changes first.'; exit 1; }
+	@next=$$($(CLIFF) --bumped-version 2>/dev/null); \
+	if [ "$$next" = "$$(git describe --tags --abbrev=0 2>/dev/null)" ]; then \
+		echo "No feat or fix commits since $$next: nothing to release."; exit 1; fi; \
+	sed -i "0,/^version *=/s/^version *= *\"[^\"]*\"/version      = \"$${next#v}\"/" Cargo.toml; \
+	cargo update --workspace --offline --quiet; \
+	$(CLIFF) --tag "$$next" --output CHANGELOG.md 2>/dev/null; \
+	git commit -q -s -m "chore(release): $$next" Cargo.toml Cargo.lock CHANGELOG.md; \
+	git tag -a "$$next" -m "emb3d-wb $${next#v}"; \
+	echo "Released $$next locally. Publish it with: git push origin HEAD $$next, then run the release workflow."
 
 release-check: ## Check that TAG (vX.Y.Z) is SemVer and matches Cargo.toml and CHANGELOG.md
 	@echo '$(TAG)' | grep -Eq '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$$' \
