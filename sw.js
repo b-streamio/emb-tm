@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 // Offline cache: the app shell, the component library, every example
 // listed in examples/index.json and every EMB3D release listed in
 // data/stix/index.json are cached at install (the wasm and the releases as

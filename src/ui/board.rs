@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 //! Diagram view: library rail and page list, breadcrumbs, the board with its
 //! blocks and data flows, and the inspector beside it.
 

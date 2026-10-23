@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 //! EMB3D Workbench: embedded-device threat modeling on MITRE EMB3D, as an
 //! offline PWA and a command line. `stix`, `model`,
 //! `engine` and `ops` are plain Rust; `ui` renders them with Leptos, `cli`

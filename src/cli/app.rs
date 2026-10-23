@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 //! `emb3d-wb app`: serves the embedded PWA (feature `pwa`) on the loopback
 //! address and opens it in its own browser window.
 //!

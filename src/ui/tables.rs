@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 //! Threats and Countermeasures tables, and the Report view.
 
 use leptos::prelude::*;

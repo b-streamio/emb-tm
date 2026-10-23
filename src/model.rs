@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 //! Project and component-library files. The JSON is the one the JavaScript
 //! app and the CLI use (format v2: pages); unknown fields are kept.
 //!

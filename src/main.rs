@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 //! `emb3d-wb`: the browser app on wasm32, the command line
 //! everywhere else.
 

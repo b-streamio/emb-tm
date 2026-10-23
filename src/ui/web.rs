@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 //! The few browser APIs the app uses, wrapped so that failures (private
 //! mode, offline, blocked clipboard) degrade quietly.
 

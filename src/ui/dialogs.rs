@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 //! Dialogs: templates for New, the EMB3D reader, information panels,
 //! switching EMB3D release, checking for a new release and the custom block
 //! editor.

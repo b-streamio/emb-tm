@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 //! The command line: the browser app's engine, from a terminal or CI.
 
 mod app;

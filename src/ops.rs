@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 //! Editing operations on a project: adding blocks, moving them into devices,
 //! copy and paste, splitting units, importing a project as a device and
 //! custom block types. No browser API here; the UI calls these.

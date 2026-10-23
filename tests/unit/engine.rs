@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 //! Unit tests of `src/engine.rs` (a child module of it, so private items are in reach).
 
 use super::*;

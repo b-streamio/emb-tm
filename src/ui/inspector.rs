@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 //! Right-hand panel: page summary, or the selected block, device box or data flow.
 
 use std::time::Duration;

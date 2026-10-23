@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 //! The command line on the Yocto fixture and the system example.
 
 use std::{path::PathBuf, process::Command};

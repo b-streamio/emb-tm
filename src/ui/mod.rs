@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 //! Leptos UI. All state lives in [`Ctx`]. An edit goes through [`Ctx::edit`]
 //! (re-render and save); typing goes through [`Ctx::typing`], which saves and
 //! refreshes the board but leaves the focused form alone.

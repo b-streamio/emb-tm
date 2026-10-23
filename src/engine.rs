@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 //! Rules, roll-ups, validation, TM-BOM export and report markup.
 //!
 //! 1. A component's EMB3D properties = its type's `base` PIDs + the PIDs of

@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /* B-Stream theme (b-stream.io): deep navy surfaces, electric blue to cyan accent, system UI type, a local monospace (JetBrains Mono when installed) for labels and data.
    No web fonts: the app works offline and under a strict CSP.
    Deliberately dark-only, like the site. Layout: library rail | dot-grid board | inspector. */

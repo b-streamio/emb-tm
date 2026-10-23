@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-only
 # cargo-deny policy (same rules as the b-stream website): licenses and sources.
 # Run: cargo deny check licenses bans sources
 #

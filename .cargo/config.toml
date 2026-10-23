@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-only
 # Leptos type-erases component boundaries: about 10% less wasm, same
 # behaviour.
 [target.wasm32-unknown-unknown]
