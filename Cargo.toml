@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-only
 [package]
 name         = "emb3d-wb"
 description  = "EMB3D Workbench: embedded-device threat modeling on MITRE EMB3D, as an offline PWA"
@@ -19,6 +20,10 @@ web-sys              = { version = "0.3", features = [
     "HtmlElement", "HtmlInputElement", "KeyboardEvent", "Navigator", "PointerEvent", "ReadableStream", "ReadableWritablePair", "Response",
     "Selection", "ServiceWorkerContainer", "Storage", "Url", "Window",
 ] }
+
+# No unsafe code of our own (SECURITY.md); clippy runs with warnings as errors.
+[lints.rust]
+unsafe_code = "forbid"
 
 [features]
 # `make bin`: embed dist/ in the command line for `emb3d-wb app`.
