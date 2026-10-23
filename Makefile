@@ -28,7 +28,7 @@ WASM_OPT_FLAGS := -Oz --enable-bulk-memory --enable-mutable-globals --enable-non
 # Analysis and release tools, pinned and installed the same way.
 AUDIT := target/tools/cargo-audit-0.22.2/bin/cargo-audit
 DENY := target/tools/cargo-deny-0.20.2/bin/cargo-deny
-LLVM_COV := target/tools/cargo-llvm-cov-0.9.1/bin/cargo-llvm-cov
+CARGO_LLVM_COV := target/tools/cargo-llvm-cov-0.9.1/bin/cargo-llvm-cov
 CYCLONEDX := target/tools/cargo-cyclonedx-0.5.9/bin/cargo-cyclonedx
 ABOUT := target/tools/cargo-about-0.9.2/bin/cargo-about
 # Conventional Commits → next version and CHANGELOG.md (cliff.toml).
@@ -88,7 +88,7 @@ uninstall: ## Remove what make install put into PREFIX
 	rm -f $(PREFIX)/bin/emb3d-wb $(PREFIX)/share/icons/hicolor/scalable/apps/emb3d-wb.svg \
 		$(PREFIX)/share/applications/emb3d-wb.desktop
 
-tools: $(BINDGEN) $(WASM_OPT) $(AUDIT) $(DENY) $(LLVM_COV) $(CYCLONEDX) $(ABOUT) $(CLIFF) ## Pinned tools, into target/tools (not system-wide)
+tools: $(BINDGEN) $(WASM_OPT) $(AUDIT) $(DENY) $(CARGO_LLVM_COV) $(CYCLONEDX) $(ABOUT) $(CLIFF) ## Pinned tools, into target/tools (not system-wide)
 
 $(BINDGEN):
 	cargo install --locked --root $(@D)/.. wasm-bindgen-cli@$(BINDGEN_VERSION)
@@ -97,7 +97,7 @@ $(WASM_OPT):
 	cargo install --locked --root $(@D)/.. wasm-opt@$(WASM_OPT_VERSION)
 
 # target/tools/<crate>-<version>/bin/<crate>
-$(AUDIT) $(DENY) $(LLVM_COV) $(CYCLONEDX) $(ABOUT) $(CLIFF):
+$(AUDIT) $(DENY) $(CARGO_LLVM_COV) $(CYCLONEDX) $(ABOUT) $(CLIFF):
 	cargo install --locked --root $(@D)/.. $$(basename $(@D:/bin=)| sed 's/-\([0-9][^-]*\)$$/@\1/')
 
 test: ## Unit tests (tests/unit) and command-line tests (tests/cli.rs)
@@ -108,8 +108,8 @@ lint: ## rustfmt + clippy, warnings are errors
 	cargo clippy --all-targets -- -D warnings
 	cargo clippy --target wasm32-unknown-unknown -- -D warnings
 
-coverage: $(LLVM_COV) ## Tests with line coverage (needs the llvm-tools-preview component); fails under COVERAGE_MIN
-	$(LLVM_COV) llvm-cov --locked --ignore-filename-regex '$(COVERAGE_SKIP)' \
+coverage: $(CARGO_LLVM_COV) ## Tests with line coverage (needs the llvm-tools-preview component); fails under COVERAGE_MIN
+	$(CARGO_LLVM_COV) llvm-cov --locked --ignore-filename-regex '$(COVERAGE_SKIP)' \
 		--fail-under-lines $(COVERAGE_MIN) --summary-only
 
 security: $(AUDIT) $(DENY) ## Known vulnerabilities (RustSec), licences and sources of every dependency
