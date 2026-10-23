@@ -6,7 +6,7 @@ use std::{path::PathBuf, process::Command};
 use serde_json::Value;
 
 const DEPLOY: &str = "examples/yocto-scan/deploy";
-const SYSTEM: &str = "examples/system/connected-vision-system.project.json";
+const SYSTEM: &str = "examples/system/surveillance-alarm-system.project.json";
 
 /// A fresh scratch directory for one test.
 fn tmp(name: &str) -> PathBuf {
@@ -75,7 +75,7 @@ fn full_deploy_dir_scan() {
     ]);
     assert_eq!(code, 0, "{text}");
     let p = json(&out);
-    assert_eq!(p["name"], "core-image-gateway (raspberrypi4-64)");
+    assert_eq!(p["name"], "alarm-hub-image (raspberrypi4-64)");
     let boot = node(&p, "bootloader", "").unwrap();
     assert_eq!(
         (boot["name"].as_str(), boot["answers"]["verify"].as_str()),
@@ -112,7 +112,15 @@ fn full_deploy_dir_scan() {
     assert!(evidence_has(sshd, "_component", "CVE-2024-6387"));
     assert_eq!(node(&p, "os", "").unwrap()["answers"]["modules"], true);
     assert!(node(&p, "rot", "").is_none(), "no TPM in this image");
-    assert_eq!(p["pages"][0]["flows"].as_array().unwrap().len(), 3);
+    // operator: SSH, serial console, web interface; update server: RAUC bundles
+    assert_eq!(p["pages"][0]["flows"].as_array().unwrap().len(), 4);
+    let modem = node(&p, "periph", "Cellular modem").unwrap();
+    assert!(
+        modem["review"]["_component"].is_string(),
+        "the modem is flagged for review"
+    );
+    let rtsp = node(&p, "netsvc", "RTSP").unwrap();
+    assert_eq!(rtsp["answers"]["no_enc"], true);
     let tm = json(&tmbom);
     assert!(
         tm["threats"].as_array().unwrap().len() > 50
@@ -133,7 +141,7 @@ fn full_deploy_dir_scan() {
         "--summary",
         sum.to_str().unwrap(),
     ]);
-    assert!(code == 0 && text.contains("core-image-gateway"), "{text}");
+    assert!(code == 0 && text.contains("alarm-hub-image"), "{text}");
     assert!(json(&sum)["threats"].as_u64().unwrap() > 50);
     assert_eq!(
         run(&["analyze", tmbom.to_str().unwrap(), "--fail-on-open", "0"]).0,
@@ -161,7 +169,7 @@ fn full_deploy_dir_scan() {
 fn sbom_only_flags_missing_inputs_for_review() {
     let d = tmp("sbom");
     let out = d.join("p.json");
-    let sbom = format!("{DEPLOY}/core-image-gateway-raspberrypi4-64.rootfs.cdx.json");
+    let sbom = format!("{DEPLOY}/alarm-hub-image-raspberrypi4-64.rootfs.cdx.json");
     assert_eq!(
         run(&["scan", "--sbom", &sbom, "-o", out.to_str().unwrap()]).0,
         0
@@ -236,7 +244,7 @@ fn system_example_analysis_and_report() {
             s["devices"].as_u64(),
             s["emb3d"].as_str()
         ),
-        (Some(179), Some(4), Some("2.0.1"))
+        (Some(208), Some(4), Some("2.0.1"))
     );
     assert!(text.contains("devices 4, pages 5") && text.contains(" > ") && text.contains("[via "));
     let html = std::fs::read_to_string(&report).unwrap();

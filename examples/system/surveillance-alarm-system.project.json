@@ -1,0 +1,1222 @@
+{
+  "customTypes": [
+    {
+      "base": [
+        "PID-13"
+      ],
+      "group": "Hardware",
+      "hint": "Camera sensor and optics on a MIPI CSI link.",
+      "name": "Image sensor module",
+      "tag": "CAM",
+      "threats": [
+        {
+          "cms": [
+            {
+              "desc": "Raise a tamper alarm when exposure saturates, the image goes blank or the scene changes abruptly.",
+              "id": "CUM-001",
+              "name": "Detect blinding and scene changes"
+            }
+          ],
+          "desc": "An attacker blinds the sensor with a laser or bright light, covers it, or alters the scene so that intrusions are missed.",
+          "id": "CUS-001",
+          "name": "Optical blinding or scene manipulation"
+        },
+        {
+          "cms": [
+            {
+              "desc": "Seal the enclosure and raise a tamper alarm when it is opened.",
+              "id": "CUM-002",
+              "name": "Tamper-evident enclosure"
+            }
+          ],
+          "desc": "An attacker with access to the camera board injects or replays frames on the sensor link.",
+          "id": "CUS-002",
+          "name": "Sensor link injection"
+        }
+      ],
+      "type": "custom-image-sensor"
+    },
+    {
+      "base": [
+        "PID-13"
+      ],
+      "group": "Hardware",
+      "hint": "MEMS microphone on a PDM or I2S link, listening for glass break and screams.",
+      "name": "Microphone (MEMS)",
+      "questions": [
+        {
+          "default": "events",
+          "id": "audio_path",
+          "kind": "choice",
+          "options": [
+            {
+              "label": "Detection events only",
+              "value": "events"
+            },
+            {
+              "label": "Audio clips or live audio",
+              "pids": [
+                "PID-411"
+              ],
+              "value": "clips"
+            }
+          ],
+          "text": "Audio leaves the sensor as"
+        }
+      ],
+      "tag": "MIC",
+      "threats": [
+        {
+          "cms": [
+            {
+              "desc": "Raise an intrusion alarm only when a camera or another sensor confirms the audio detection.",
+              "id": "CUM-003",
+              "name": "Confirm audio alarms with a second sensor"
+            }
+          ],
+          "desc": "Ultrasonic or played-back sound triggers false alarms or masks a real break-in, for example to wear out the security company's response.",
+          "id": "CUS-003",
+          "name": "Acoustic injection"
+        },
+        {
+          "cms": [
+            {
+              "desc": "Process audio on the sensor and send only detection events; send clips only on alarm, encrypted.",
+              "id": "CUM-004",
+              "name": "Keep audio on the sensor"
+            }
+          ],
+          "desc": "Room audio is captured or forwarded beyond what detection needs, exposing private conversations.",
+          "id": "CUS-004",
+          "name": "Eavesdropping on the premises"
+        }
+      ],
+      "type": "custom-microphone"
+    }
+  ],
+  "emb3d": "2.0.1",
+  "flowSeq": 14,
+  "meta": {
+    "description": "Generic example of an intrusion alarm system: IP cameras and audio sensors (glass break, screams) report to an alarm hub, keypads arm and disarm it, and the hub contacts the security company's alarm receiving centre over Ethernet with an LTE backup, sending alarm events and video clips for verification. The hub's design comes from emb3d-wb scan of its Yocto image. Each box on the System page opens the design of that device.",
+    "owner": "",
+    "reviewer": ""
+  },
+  "name": "Example: surveillance and alarm system",
+  "pages": [
+    {
+      "flows": [
+        {
+          "encrypted": false,
+          "from": 42,
+          "id": 1,
+          "label": "video (RTSP)",
+          "sensitive": true,
+          "to": 45
+        },
+        {
+          "encrypted": true,
+          "from": 43,
+          "id": 2,
+          "label": "audio detections (868 MHz, AES)",
+          "sensitive": true,
+          "to": 45
+        },
+        {
+          "encrypted": false,
+          "from": 44,
+          "id": 3,
+          "label": "arm/disarm, PIN; siren (RS-485)",
+          "sensitive": true,
+          "to": 45
+        },
+        {
+          "encrypted": true,
+          "from": 45,
+          "id": 4,
+          "label": "alarm events, clips (SIA DC-09, AES)",
+          "sensitive": true,
+          "to": 46
+        },
+        {
+          "encrypted": true,
+          "from": 45,
+          "id": 5,
+          "label": "notifications (MQTT/TLS)",
+          "sensitive": true,
+          "to": 47
+        },
+        {
+          "encrypted": true,
+          "from": 49,
+          "id": 6,
+          "label": "mobile app (HTTPS)",
+          "sensitive": true,
+          "to": 47
+        },
+        {
+          "encrypted": false,
+          "from": 49,
+          "id": 7,
+          "label": "PIN entry",
+          "sensitive": true,
+          "to": 44
+        },
+        {
+          "encrypted": true,
+          "from": 50,
+          "id": 8,
+          "label": "maintenance (HTTPS)",
+          "sensitive": true,
+          "to": 45
+        },
+        {
+          "encrypted": true,
+          "from": 48,
+          "id": 9,
+          "label": "signed updates (HTTPS)",
+          "sensitive": true,
+          "to": 45
+        }
+      ],
+      "id": "p1",
+      "name": "System",
+      "nodes": [
+        {
+          "accepted": {},
+          "answers": {},
+          "cm": {},
+          "id": 42,
+          "name": "IP camera",
+          "page": "p2",
+          "qty": 6,
+          "type": "device",
+          "why": {},
+          "x": 40,
+          "y": 40
+        },
+        {
+          "accepted": {},
+          "answers": {},
+          "cm": {},
+          "id": 43,
+          "name": "Audio sensor",
+          "page": "p3",
+          "qty": 4,
+          "type": "device",
+          "why": {},
+          "x": 40,
+          "y": 300
+        },
+        {
+          "accepted": {},
+          "answers": {},
+          "cm": {},
+          "id": 44,
+          "name": "Keypad and siren",
+          "page": "p4",
+          "qty": 2,
+          "type": "device",
+          "why": {},
+          "x": 40,
+          "y": 560
+        },
+        {
+          "accepted": {},
+          "answers": {},
+          "cm": {},
+          "id": 45,
+          "name": "Alarm hub",
+          "page": "p5",
+          "qty": 1,
+          "type": "device",
+          "why": {},
+          "x": 470,
+          "y": 300
+        },
+        {
+          "accepted": {},
+          "answers": {},
+          "cm": {},
+          "id": 46,
+          "name": "Alarm receiving centre",
+          "type": "cloud",
+          "why": {},
+          "x": 880,
+          "y": 60
+        },
+        {
+          "accepted": {},
+          "answers": {},
+          "cm": {},
+          "id": 47,
+          "name": "Remote access service",
+          "type": "cloud",
+          "why": {},
+          "x": 880,
+          "y": 600
+        },
+        {
+          "accepted": {},
+          "answers": {},
+          "cm": {},
+          "id": 48,
+          "name": "Update server",
+          "type": "cloud",
+          "why": {},
+          "x": 880,
+          "y": 330
+        },
+        {
+          "accepted": {},
+          "answers": {},
+          "cm": {},
+          "id": 49,
+          "name": "Occupant",
+          "type": "person",
+          "why": {},
+          "x": 66,
+          "y": 820
+        },
+        {
+          "accepted": {},
+          "answers": {},
+          "cm": {},
+          "id": 50,
+          "name": "Installer",
+          "type": "person",
+          "why": {},
+          "x": 496,
+          "y": 600
+        }
+      ]
+    },
+    {
+      "flows": [
+        {
+          "encrypted": false,
+          "from": 3,
+          "id": 10,
+          "label": "MIPI CSI",
+          "sensitive": true,
+          "to": 1
+        }
+      ],
+      "id": "p2",
+      "name": "IP camera",
+      "nodes": [
+        {
+          "accepted": {},
+          "answers": {
+            "shared_mem": true
+          },
+          "cm": {},
+          "id": 1,
+          "name": "Camera SoC",
+          "type": "soc",
+          "why": {},
+          "x": 300,
+          "y": 60
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "removable": false
+          },
+          "cm": {},
+          "id": 2,
+          "name": "SPI flash",
+          "type": "storage",
+          "why": {},
+          "x": 300,
+          "y": 190
+        },
+        {
+          "accepted": {},
+          "answers": {},
+          "cm": {},
+          "id": 3,
+          "name": "Image sensor module",
+          "type": "custom-image-sensor",
+          "why": {},
+          "x": 300,
+          "y": 320
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "verify": "none"
+          },
+          "cm": {},
+          "id": 4,
+          "name": "Boot loader",
+          "type": "bootloader",
+          "why": {},
+          "x": 540,
+          "y": 60
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "containers": false,
+            "hypervisor": false,
+            "mmu": true,
+            "modules": false,
+            "separation": "none",
+            "syslog": false
+          },
+          "cm": {},
+          "id": 5,
+          "name": "Embedded Linux",
+          "type": "os",
+          "why": {},
+          "x": 540,
+          "y": 190
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "crypto": false,
+            "no_auth": true,
+            "no_enc": true,
+            "route": false,
+            "sensitive": true
+          },
+          "cm": {},
+          "id": 6,
+          "name": "RTSP stream",
+          "type": "netsvc",
+          "why": {},
+          "x": 1020,
+          "y": 60
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "auth": "password"
+          },
+          "cm": {},
+          "id": 7,
+          "name": "Web configuration",
+          "type": "ui",
+          "why": {},
+          "x": 780,
+          "y": 60
+        }
+      ]
+    },
+    {
+      "flows": [
+        {
+          "encrypted": false,
+          "from": 8,
+          "id": 11,
+          "label": "PDM audio",
+          "sensitive": true,
+          "to": 9
+        }
+      ],
+      "id": "p3",
+      "name": "Audio sensor",
+      "nodes": [
+        {
+          "accepted": {},
+          "answers": {
+            "shared_mem": false
+          },
+          "cm": {},
+          "id": 9,
+          "name": "Microcontroller",
+          "type": "soc",
+          "why": {},
+          "x": 300,
+          "y": 60
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "removable": false
+          },
+          "cm": {},
+          "id": 10,
+          "name": "Internal flash",
+          "type": "storage",
+          "why": {},
+          "x": 300,
+          "y": 190
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "audio_path": "events"
+          },
+          "cm": {},
+          "id": 8,
+          "name": "Microphone (MEMS)",
+          "type": "custom-microphone",
+          "why": {},
+          "x": 300,
+          "y": 320
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "sw_debug": false
+          },
+          "cm": {},
+          "id": 11,
+          "name": "SWD port",
+          "type": "debug",
+          "why": {},
+          "x": 300,
+          "y": 450
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "verify": "signature"
+          },
+          "cm": {},
+          "id": 12,
+          "name": "MCUboot",
+          "type": "bootloader",
+          "why": {},
+          "x": 540,
+          "y": 60
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "containers": false,
+            "hypervisor": false,
+            "mmu": true,
+            "modules": false,
+            "separation": "none",
+            "syslog": false
+          },
+          "cm": {},
+          "id": 13,
+          "name": "RTOS",
+          "type": "os",
+          "why": {},
+          "x": 540,
+          "y": 190
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "applog": false,
+            "lang": "c",
+            "web": false
+          },
+          "cm": {},
+          "id": 14,
+          "name": "Glass-break and scream detector",
+          "type": "app",
+          "why": {},
+          "x": 780,
+          "y": 60
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "integrity": "signature",
+            "pick_version": false,
+            "plaintext": true,
+            "remote": true
+          },
+          "cm": {},
+          "id": 15,
+          "name": "Firmware update over radio",
+          "type": "update",
+          "why": {},
+          "x": 540,
+          "y": 320
+        },
+        {
+          "accepted": {},
+          "answers": {},
+          "cm": {},
+          "id": 16,
+          "name": "868 MHz radio",
+          "type": "periph",
+          "why": {},
+          "x": 300,
+          "y": 580
+        }
+      ]
+    },
+    {
+      "flows": [],
+      "id": "p4",
+      "name": "Keypad and siren",
+      "nodes": [
+        {
+          "accepted": {},
+          "answers": {
+            "shared_mem": false
+          },
+          "cm": {},
+          "id": 17,
+          "name": "Microcontroller",
+          "type": "soc",
+          "why": {},
+          "x": 300,
+          "y": 60
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "removable": false
+          },
+          "cm": {},
+          "id": 18,
+          "name": "Flash",
+          "type": "storage",
+          "why": {},
+          "x": 300,
+          "y": 190
+        },
+        {
+          "accepted": {},
+          "answers": {},
+          "cm": {},
+          "id": 19,
+          "name": "Keys, display and siren driver",
+          "type": "periph",
+          "why": {},
+          "x": 300,
+          "y": 320
+        },
+        {
+          "accepted": {},
+          "answers": {},
+          "cm": {},
+          "id": 20,
+          "name": "RS-485 bus interface",
+          "type": "periph",
+          "why": {},
+          "x": 300,
+          "y": 450
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "sw_debug": false
+          },
+          "cm": {},
+          "id": 21,
+          "name": "Programming header",
+          "type": "debug",
+          "why": {},
+          "x": 300,
+          "y": 580
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "containers": false,
+            "hypervisor": false,
+            "mmu": false,
+            "modules": false,
+            "separation": "none",
+            "syslog": false
+          },
+          "cm": {},
+          "id": 22,
+          "name": "Bare-metal firmware",
+          "type": "os",
+          "why": {},
+          "x": 540,
+          "y": 60
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "auth": "password"
+          },
+          "cm": {},
+          "id": 23,
+          "name": "PIN entry",
+          "type": "ui",
+          "why": {},
+          "x": 780,
+          "y": 60
+        }
+      ]
+    },
+    {
+      "flows": [
+        {
+          "encrypted": false,
+          "from": 39,
+          "id": 12,
+          "label": "alarm events",
+          "sensitive": true,
+          "to": 41
+        },
+        {
+          "encrypted": false,
+          "from": 40,
+          "id": 13,
+          "label": "verification clips",
+          "sensitive": true,
+          "to": 41
+        }
+      ],
+      "id": "p5",
+      "name": "Alarm hub",
+      "nodes": [
+        {
+          "accepted": {},
+          "answers": {
+            "shared_mem": true
+          },
+          "cm": {},
+          "evidence": {
+            "_component": [
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.testdata.json",
+                "text": "MACHINE = \"raspberrypi4-64\""
+              }
+            ],
+            "shared_mem": [
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.testdata.json",
+                "text": "MACHINEOVERRIDES = \"aarch64:armv8a:rpi:raspberrypi4-64\""
+              }
+            ]
+          },
+          "id": 24,
+          "name": "raspberrypi4-64 SoC",
+          "type": "soc",
+          "why": {},
+          "x": 300,
+          "y": 60
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "ddr": true
+          },
+          "cm": {},
+          "evidence": {
+            "_component": [
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.testdata.json",
+                "text": "MACHINE = \"raspberrypi4-64\""
+              }
+            ]
+          },
+          "id": 25,
+          "name": "RAM",
+          "type": "dram",
+          "why": {},
+          "x": 300,
+          "y": 190
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "removable": false
+          },
+          "cm": {},
+          "evidence": {
+            "_component": [
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.testdata.json",
+                "text": "MACHINE = \"raspberrypi4-64\""
+              }
+            ],
+            "removable": [
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.testdata.json",
+                "text": "MACHINEOVERRIDES = \"aarch64:armv8a:rpi:raspberrypi4-64\""
+              }
+            ]
+          },
+          "id": 26,
+          "name": "Boot storage",
+          "type": "storage",
+          "why": {},
+          "x": 300,
+          "y": 320
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "sw_debug": true
+          },
+          "cm": {},
+          "evidence": {
+            "_component": [
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.testdata.json",
+                "text": "SERIAL_CONSOLES = \"115200;ttyS0\""
+              },
+              {
+                "file": "rootfs:/etc/systemd/system/getty.target.wants/serial-getty@ttyS0.service",
+                "text": "present"
+              }
+            ],
+            "sw_debug": [
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.testdata.json",
+                "text": "SERIAL_CONSOLES = \"115200;ttyS0\""
+              }
+            ]
+          },
+          "id": 27,
+          "name": "Serial console",
+          "type": "debug",
+          "why": {},
+          "x": 300,
+          "y": 450
+        },
+        {
+          "accepted": {},
+          "answers": {},
+          "cm": {},
+          "evidence": {
+            "_component": [
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.testdata.json",
+                "text": "MACHINE_FEATURES = \"apm usbhost keyboard vfat ext2 screen touchscreen alsa bluetooth wifi sdio vc4graphics\""
+              },
+              {
+                "file": "config-raspberrypi4-64",
+                "line": 5,
+                "text": "CONFIG_USB_SUPPORT=y"
+              }
+            ]
+          },
+          "id": 28,
+          "name": "USB",
+          "type": "periph",
+          "why": {},
+          "x": 300,
+          "y": 580
+        },
+        {
+          "accepted": {},
+          "answers": {},
+          "cm": {},
+          "evidence": {
+            "_component": [
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.manifest",
+                "text": "modemmanager 1.22.0-r0"
+              },
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.manifest",
+                "text": "libqmi 1.34.0-r0"
+              }
+            ]
+          },
+          "id": 29,
+          "name": "Cellular modem 1.22.0",
+          "type": "periph",
+          "why": {},
+          "x": 300,
+          "y": 710
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "verify": "signature"
+          },
+          "cm": {},
+          "evidence": {
+            "_component": [
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.testdata.json",
+                "text": "PREFERRED_PROVIDER_virtual/bootloader = \"u-boot\""
+              },
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.manifest",
+                "text": "u-boot-env 2024.01-r0"
+              },
+              {
+                "file": "u-boot-raspberrypi4-64.cdx.json",
+                "text": "u-boot 2024.01"
+              },
+              {
+                "file": "u-boot-raspberrypi4-64.cdx.json",
+                "text": "u-boot 2024.01: 1 open of 1 CVEs in SBOM (CVE-2024-57256)"
+              }
+            ],
+            "verify": [
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.testdata.json",
+                "text": "UBOOT_SIGN_ENABLE = \"1\""
+              }
+            ]
+          },
+          "id": 30,
+          "name": "U-Boot 2024.01",
+          "type": "bootloader",
+          "why": {},
+          "x": 540,
+          "y": 60
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "containers": false,
+            "hypervisor": false,
+            "mmu": true,
+            "modules": true,
+            "separation": "accounts",
+            "syslog": true
+          },
+          "cm": {},
+          "evidence": {
+            "_component": [
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.testdata.json",
+                "text": "PREFERRED_PROVIDER_virtual/kernel = \"linux-raspberrypi\""
+              },
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.manifest",
+                "text": "kernel-image-image-6.6.22-v8 1:6.6.22+git-r0"
+              },
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.cdx.json",
+                "text": "linux-raspberrypi 6.6.22"
+              }
+            ],
+            "mmu": [
+              {
+                "file": "config-raspberrypi4-64",
+                "line": 1,
+                "text": "CONFIG_MMU=y"
+              }
+            ],
+            "modules": [
+              {
+                "file": "config-raspberrypi4-64",
+                "line": 2,
+                "text": "CONFIG_MODULES=y"
+              }
+            ],
+            "separation": [
+              {
+                "file": "rootfs:/etc/passwd",
+                "line": 2,
+                "text": "mosquitto:x:998:998::/var/lib/mosquitto:/bin/false"
+              }
+            ],
+            "syslog": [
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.manifest",
+                "text": "systemd 1:255.4-r0"
+              }
+            ]
+          },
+          "id": 31,
+          "name": "linux-raspberrypi 6.6.22",
+          "type": "os",
+          "why": {},
+          "x": 540,
+          "y": 190
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "integrity": "signature",
+            "pick_version": true,
+            "plaintext": true,
+            "remote": true
+          },
+          "cm": {},
+          "evidence": {
+            "_component": [
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.manifest",
+                "text": "rauc 1.11.3-r0"
+              }
+            ],
+            "integrity": [
+              {
+                "file": "rootfs:/etc/rauc/system.conf",
+                "line": 4
+              }
+            ],
+            "remote": [
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.manifest",
+                "text": "rauc-hawkbit-updater 1.3-r0"
+              }
+            ]
+          },
+          "id": 32,
+          "name": "RAUC 1.11.3",
+          "type": "update",
+          "why": {},
+          "x": 540,
+          "y": 320
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "crypto": true,
+            "no_auth": false,
+            "no_enc": false,
+            "route": false,
+            "sensitive": true
+          },
+          "cm": {},
+          "evidence": {
+            "_component": [
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.manifest",
+                "text": "openssh-sshd 9.6p1-r0"
+              },
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.cdx.json",
+                "text": "openssh 9.6p1"
+              },
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.testdata.json",
+                "text": "IMAGE_FEATURES = \"ssh-server-openssh package-management\""
+              },
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.cdx.json",
+                "text": "openssh 9.6p1: 1 open of 2 CVEs in SBOM (CVE-2024-6387)"
+              }
+            ]
+          },
+          "id": 33,
+          "name": "OpenSSH server 9.6p1",
+          "type": "netsvc",
+          "why": {},
+          "x": 1020,
+          "y": 60
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "auth": "crypto"
+          },
+          "cm": {},
+          "evidence": {
+            "_component": [
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.manifest",
+                "text": "openssh-sshd 9.6p1-r0"
+              },
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.cdx.json",
+                "text": "openssh 9.6p1"
+              },
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.testdata.json",
+                "text": "IMAGE_FEATURES = \"ssh-server-openssh package-management\""
+              }
+            ],
+            "auth": [
+              {
+                "file": "rootfs:/etc/ssh/sshd_config",
+                "line": 3,
+                "text": "PasswordAuthentication no"
+              }
+            ]
+          },
+          "id": 34,
+          "name": "SSH login",
+          "type": "ui",
+          "why": {},
+          "x": 780,
+          "y": 60
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "crypto": true,
+            "no_auth": false,
+            "no_enc": false,
+            "route": false,
+            "sensitive": true
+          },
+          "cm": {},
+          "evidence": {
+            "_component": [
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.manifest",
+                "text": "mosquitto 2.0.18-r0"
+              },
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.cdx.json",
+                "text": "mosquitto 2.0.18-r0: 1 open of 1 CVEs in SBOM (CVE-2024-3935)"
+              }
+            ],
+            "crypto": [
+              {
+                "file": "rootfs:/etc/mosquitto/mosquitto.conf",
+                "line": 2,
+                "text": "certfile /etc/mosquitto/certs/server.crt"
+              }
+            ],
+            "no_auth": [
+              {
+                "file": "rootfs:/etc/mosquitto/mosquitto.conf",
+                "line": 4,
+                "text": "password_file /etc/mosquitto/passwd"
+              }
+            ],
+            "no_enc": [
+              {
+                "file": "rootfs:/etc/mosquitto/mosquitto.conf",
+                "line": 2,
+                "text": "certfile /etc/mosquitto/certs/server.crt"
+              }
+            ]
+          },
+          "id": 35,
+          "name": "Mosquitto MQTT broker 2.0.18",
+          "type": "netsvc",
+          "why": {},
+          "x": 1020,
+          "y": 190
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "crypto": false,
+            "no_auth": false,
+            "no_enc": true,
+            "route": false,
+            "sensitive": true
+          },
+          "cm": {},
+          "evidence": {
+            "_component": [
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.manifest",
+                "text": "libgstrtspserver-1.0-0 1.22.12-r0"
+              },
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.cdx.json",
+                "text": "gstreamer1.0-rtsp-server 1.22.12"
+              }
+            ]
+          },
+          "id": 36,
+          "name": "RTSP video server 1.22.12",
+          "type": "netsvc",
+          "why": {},
+          "x": 1020,
+          "y": 320
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "crypto": true,
+            "no_auth": false,
+            "no_enc": false,
+            "route": false,
+            "sensitive": true
+          },
+          "cm": {},
+          "evidence": {
+            "_component": [
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.manifest",
+                "text": "lighttpd 1.4.75-r0"
+              }
+            ],
+            "crypto": [
+              {
+                "file": "rootfs:/etc/lighttpd.conf",
+                "line": 2,
+                "text": "ssl.engine = \"enable\""
+              }
+            ],
+            "no_enc": [
+              {
+                "file": "rootfs:/etc/lighttpd.conf",
+                "line": 2,
+                "text": "ssl.engine = \"enable\""
+              }
+            ]
+          },
+          "id": 37,
+          "name": "Web server 1.4.75",
+          "type": "netsvc",
+          "why": {},
+          "x": 1020,
+          "y": 450
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "auth": "password"
+          },
+          "cm": {},
+          "evidence": {
+            "_component": [
+              {
+                "file": "alarm-hub-image-raspberrypi4-64.rootfs.manifest",
+                "text": "lighttpd 1.4.75-r0"
+              }
+            ]
+          },
+          "id": 38,
+          "name": "Web interface",
+          "type": "ui",
+          "why": {},
+          "x": 780,
+          "y": 190
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "applog": true,
+            "lang": "c",
+            "web": false
+          },
+          "cm": {},
+          "id": 39,
+          "name": "Alarm engine (alarm-hub-daemon)",
+          "type": "app",
+          "why": {},
+          "x": 780,
+          "y": 320
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "applog": true,
+            "lang": "c",
+            "web": false
+          },
+          "cm": {},
+          "id": 40,
+          "name": "Video recorder",
+          "type": "app",
+          "why": {},
+          "x": 780,
+          "y": 450
+        },
+        {
+          "accepted": {},
+          "answers": {
+            "crypto": true,
+            "no_auth": false,
+            "no_enc": false,
+            "route": false,
+            "sensitive": true
+          },
+          "cm": {},
+          "id": 41,
+          "name": "Alarm transmission (SIA DC-09)",
+          "type": "netsvc",
+          "why": {},
+          "x": 1020,
+          "y": 580
+        }
+      ]
+    }
+  ],
+  "root": "p1",
+  "seq": 51
+}

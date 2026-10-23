@@ -17,8 +17,8 @@ pub fn example(path: &str) -> Project {
         .unwrap()
 }
 
-const SYSTEM: &str = "examples/system/connected-vision-system.project.json";
-const YOCTO: &str = "examples/yocto-scan/core-image-gateway.project.json";
+const SYSTEM: &str = "examples/system/surveillance-alarm-system.project.json";
+const YOCTO: &str = "examples/yocto-scan/alarm-hub-image.project.json";
 
 /// Same numbers as the JavaScript engine for the same files.
 #[test]
@@ -31,24 +31,27 @@ fn system_example_matches_the_reference() {
     let s = m.summary(&p);
     assert_eq!(
         (s.pages, s.devices, s.components, s.flows, s.threats, s.open),
-        (5, 4, 32, 7, 179, 179)
+        (5, 4, 41, 13, 208, 208)
     );
-    assert_eq!(s.open_by_evidence, [3, 67, 53, 54, 2]);
-    assert_eq!((s.countermeasures, s.needs_review), (372, 0));
+    assert_eq!(s.open_by_evidence, [3, 79, 59, 63, 4]);
+    assert_eq!((s.countermeasures, s.needs_review), (413, 0));
     let c = m.counts(&p);
-    assert_eq!((c.open(), c.page(&p.root).threats), (179, 179));
+    assert_eq!((c.open(), c.page(&p.root).threats), (208, 208));
     let cams = p
         .nodes()
         .find(|n| n.is_device() && n.name.to_lowercase().contains("camera"))
         .unwrap();
-    assert_eq!(cams.qty, Some(4));
+    assert_eq!(cams.qty, Some(6));
     let os = p.nodes().find(|n| n.kind == "os").unwrap();
     let pids: Vec<_> = m
         .node_pids(&p, os)
         .into_iter()
         .map(|(k, v)| format!("{k}:{v:?}"))
         .collect();
-    assert_eq!(pids.join(" "), "PID-23:Base PID-231:Answer PID-232:Answer PID-2322:Answer PID-23221:Answer PID-23222:Answer PID-24:Answer PID-241:Answer PID-28:Answer");
+    assert_eq!(
+        pids.join(" "),
+        "PID-23:Base PID-232:Answer PID-2321:Answer PID-2322:Answer PID-23222:Answer PID-26:Rule"
+    );
     let tm = m.to_tmbom(&p, "2026-01-01");
     let len = |k: &str| tm[k].as_array().unwrap().len();
     assert_eq!(
@@ -59,7 +62,7 @@ fn system_example_matches_the_reference() {
             len("actors"),
             len("data_flows")
         ),
-        (179, 372, 36, 2, 7)
+        (208, 413, 45, 5, 13)
     );
     assert!(tm.get("assumptions").is_none());
     let sensor = tm["components"]
@@ -92,7 +95,7 @@ fn system_example_matches_the_reference() {
 }
 
 #[test]
-fn version_1_scan_is_migrated() {
+fn yocto_scan_example() {
     let (e, lib) = data();
     let mut p = example(YOCTO);
     let m = Model::new(&e, &lib, &p);
@@ -107,7 +110,7 @@ fn version_1_scan_is_migrated() {
             s.needs_review,
             s.open_by_evidence
         ),
-        (69, 127, 6, [1, 26, 20, 22, 0])
+        (98, 166, 13, [1, 44, 25, 28, 0])
     );
     let html = m.report_html(&p, ReportOpts::default(), "2026-01-01");
     assert!(html.contains("Generated from") && html.contains("needs review"));

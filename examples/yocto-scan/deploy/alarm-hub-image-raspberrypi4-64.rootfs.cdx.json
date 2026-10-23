@@ -6,7 +6,7 @@
     "timestamp": "2026-10-15T12:00:00Z",
     "component": {
       "type": "operating-system",
-      "name": "core-image-gateway",
+      "name": "alarm-hub-image",
       "version": "5.0.4"
     }
   },
@@ -74,6 +74,54 @@
       "version": "3.2.1",
       "purl": "pkg:yocto/openssl@3.2.1",
       "cpe": "cpe:2.3:a:openssl:openssl:3.2.1:*:*:*:*:*:*:*"
+    },
+    {
+      "type": "library",
+      "bom-ref": "modemmanager@1.22.0",
+      "name": "modemmanager",
+      "version": "1.22.0",
+      "purl": "pkg:yocto/modemmanager@1.22.0",
+      "cpe": null
+    },
+    {
+      "type": "library",
+      "bom-ref": "gstreamer1.0@1.22.12",
+      "name": "gstreamer1.0",
+      "version": "1.22.12",
+      "purl": "pkg:yocto/gstreamer1.0@1.22.12",
+      "cpe": "cpe:2.3:a:gstreamer_project:gstreamer:1.22.12:*:*:*:*:*:*:*"
+    },
+    {
+      "type": "library",
+      "bom-ref": "gstreamer1.0-rtsp-server@1.22.12",
+      "name": "gstreamer1.0-rtsp-server",
+      "version": "1.22.12",
+      "purl": "pkg:yocto/gstreamer1.0-rtsp-server@1.22.12",
+      "cpe": null
+    },
+    {
+      "type": "library",
+      "bom-ref": "alsa-lib@1.2.11",
+      "name": "alsa-lib",
+      "version": "1.2.11",
+      "purl": "pkg:yocto/alsa-lib@1.2.11",
+      "cpe": null
+    },
+    {
+      "type": "library",
+      "bom-ref": "lighttpd@1.4.75",
+      "name": "lighttpd",
+      "version": "1.4.75",
+      "purl": "pkg:yocto/lighttpd@1.4.75",
+      "cpe": "cpe:2.3:a:lighttpd:lighttpd:1.4.75:*:*:*:*:*:*:*"
+    },
+    {
+      "type": "library",
+      "bom-ref": "alarm-hub-daemon@1.4.0",
+      "name": "alarm-hub-daemon",
+      "version": "1.4.0",
+      "purl": "pkg:yocto/alarm-hub-daemon@1.4.0",
+      "cpe": null
     }
   ],
   "vulnerabilities": [

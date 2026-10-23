@@ -10,7 +10,7 @@ use crate::engine::{
 
 fn system() -> (crate::stix::Emb3d, crate::model::Library, Project) {
     let (e, lib) = data();
-    let mut p = example("examples/system/connected-vision-system.project.json");
+    let mut p = example("examples/system/surveillance-alarm-system.project.json");
     Model::new(&e, &lib, &p).normalize(&mut p);
     (e, lib, p)
 }
@@ -96,7 +96,7 @@ fn copy_cut_paste_round_trip() {
     assert_eq!(m2.validate(&p).0, Vec::<String>::new());
     assert_eq!(
         m2.summary(&p).threats,
-        179,
+        208,
         "same model after cut and paste"
     );
     // Duplicate: devices get their own design copy.
@@ -176,7 +176,7 @@ fn custom_types_and_import() {
     assert_eq!(q.node(dev).unwrap().name, sys.name);
     let mq = Model::new(&e, &lib, &q);
     assert_eq!(mq.validate(&q).0, Vec::<String>::new());
-    assert_eq!(mq.summary(&q).threats, 179);
+    assert_eq!(mq.summary(&q).threats, 208);
     // Imported custom threat ids that clash with ours are renumbered.
     let m = Model::new(&e, &lib, &p);
     import_as_device(&mut p, &m, q, "p1", 0.0, 0.0).unwrap();
