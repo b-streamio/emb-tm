@@ -43,6 +43,7 @@ COVERAGE_SKIP := src/ui/|src/main\.rs|tests/
 VERSION := $(shell awk -F'"' '/^version/ { print $$2; exit }' Cargo.toml)
 # Release archives are reproducible: same sources, same bytes.
 SOURCE_DATE_EPOCH ?= $(shell git log -1 --format=%ct 2>/dev/null || echo 0)
+export SOURCE_DATE_EPOCH
 TAR := tar --sort=name --mtime=@$(SOURCE_DATE_EPOCH) --owner=0 --group=0 --numeric-owner
 REL := target/release-files
 # Commit subjects (Conventional Commits) and the base `commit-check` compares with.
