@@ -38,7 +38,7 @@ CLIFF := target/tools/git-cliff-2.14.2/bin/git-cliff
 # The browser-only code (Leptos views and the browser API wrappers in src/ui/)
 # is left out of the figure; raise the minimum when coverage grows.
 COVERAGE_MIN := 0
-COVERAGE_SKIP := src/ui/(board|dialogs|inspector|mod|tables)\.rs|src/main\.rs|tests/
+COVERAGE_SKIP := src/ui/|src/main\.rs|tests/
 
 VERSION := $(shell awk -F'"' '/^version/ { print $$2; exit }' Cargo.toml)
 # Release archives are reproducible: same sources, same bytes.
