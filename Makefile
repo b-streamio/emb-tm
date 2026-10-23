@@ -37,7 +37,7 @@ CLIFF := target/tools/git-cliff-2.14.2/bin/git-cliff
 # Minimum line coverage of the code that runs natively (`make coverage`).
 # The browser-only code (Leptos views and the browser API wrappers in src/ui/)
 # is left out of the figure; raise the minimum when coverage grows.
-COVERAGE_MIN := 0
+COVERAGE_MIN := 90
 COVERAGE_SKIP := src/ui/|src/main\.rs|tests/
 
 VERSION := $(shell awk -F'"' '/^version/ { print $$2; exit }' Cargo.toml)
@@ -97,8 +97,12 @@ $(WASM_OPT):
 	cargo install --locked --root $(@D)/.. wasm-opt@$(WASM_OPT_VERSION)
 
 # target/tools/<crate>-<version>/bin/<crate>
-$(AUDIT) $(DENY) $(CARGO_LLVM_COV) $(CYCLONEDX) $(ABOUT) $(CLIFF):
+$(AUDIT) $(DENY) $(CARGO_LLVM_COV) $(CYCLONEDX) $(CLIFF):
 	cargo install --locked --root $(@D)/.. $$(basename $(@D:/bin=)| sed 's/-\([0-9][^-]*\)$$/@\1/')
+
+# cargo-about builds its program only with the `cli` feature.
+$(ABOUT):
+	cargo install --locked --features cli --root $(@D)/.. cargo-about@0.9.2
 
 test: ## Unit tests (tests/unit) and command-line tests (tests/cli.rs)
 	cargo test --locked
@@ -117,7 +121,7 @@ security: $(AUDIT) $(DENY) ## Known vulnerabilities (RustSec), licences and sour
 	$(DENY) deny check licenses bans sources
 
 sbom: $(CYCLONEDX) ## CycloneDX SBOM of the program and the app → target/sbom/emb3d-wb.cdx.json
-	$(CYCLONEDX) cyclonedx --format json --target all --override-filename emb3d-wb.cdx
+	$(CYCLONEDX) cyclonedx --format json --spec-version 1.5 --target all --override-filename emb3d-wb.cdx
 	mkdir -p target/sbom
 	mv emb3d-wb.cdx.json target/sbom/
 
@@ -150,7 +154,7 @@ release: $(CLIFF) ## From the commits since the last tag: version, CHANGELOG.md,
 	@test -z "$$(git status --porcelain)" || { echo 'Commit or stash your changes first.'; exit 1; }
 	@next=$$($(CLIFF) --bumped-version 2>/dev/null); \
 	if [ "$$next" = "$$(git describe --tags --abbrev=0 2>/dev/null)" ]; then \
-		echo "No feat or fix commits since $$next: nothing to release."; exit 1; fi; \
+		echo "No commit for the changelog since $$next: nothing to release."; exit 1; fi; \
 	sed -i "0,/^version *=/s/^version *= *\"[^\"]*\"/version      = \"$${next#v}\"/" Cargo.toml; \
 	cargo update --workspace --offline --quiet; \
 	$(CLIFF) --tag "$$next" --output CHANGELOG.md 2>/dev/null; \
