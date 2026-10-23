@@ -4,30 +4,92 @@ Embedded-device threat modeling on top of [MITRE EMB3D](https://emb3d.mitre.org/
 Drag device components onto a board, answer a few questions per component, and the
 matching EMB3D threats and countermeasures appear. Track countermeasure status with
 justifications, print a report, and export the model as an OWASP TM-BOM
-(Threat Model Library schema v1.0.2), which OWASP Threat Dragon can open.
+(Threat Model Library schema v1.0.2), which OWASP Threat Dragon can open. A command line
+does the same from a terminal or CI, and makes a first model from a Yocto image and its SBOMs.
 
-No build step, no backend, no dependencies. The same engine runs in the browser and on the
-command line, and a scanner builds a first model from a Yocto image and its SBOMs.
+## Why it exists
 
-## Run
+MITRE EMB3D is a catalogue of threats to embedded devices, tied to what a device is made of
+(its properties) and to mitigations. It is published as web pages and STIX data, not as a tool
+you can apply to your own design. General threat modeling tools are built around IT systems and
+STRIDE, not device properties, and commercial platforms ask you to upload unreleased product
+designs to someone else's cloud. The Workbench closes that gap: describe the device, and EMB3D's
+threats follow from the description, with the reasoning shown and an export in an open format.
 
-    python3 -m http.server -d .    # then open http://localhost:8000
+It is built on a few principles:
 
-(Opening index.html straight from disk will not load the data files.)
+- **Free and open source** (GPL-2.0-only, see [LICENSE](LICENSE)), so anyone can use, audit and adapt it.
+- **Offline first**: after the first load it needs no network, in the browser or as a desktop app.
+- **Your data stays yours**: no account, no backend, no telemetry. Models are kept on your machine
+  and saved as plain JSON files that you own and that other tools can read.
+- **Transparent**: every threat says which property brought it in, and every decision carries its
+  justification.
+
+Contributions are welcome: issues, fixes, new components (`library/components.json`), scanner
+rules (`library/yocto-rules.json`) and examples (`examples/`). Most of what the app knows is data,
+so many improvements need no Rust at all. See [CONTRIBUTING.md](CONTRIBUTING.md) for pull requests,
+[SECURITY.md](SECURITY.md) to report a vulnerability, and [CHANGELOG.md](CHANGELOG.md) for releases.
+
+## Use it
+
+**In a browser**: serve `dist/` from any static web server (see Develop), open it, and choose
+**Install app** in the address bar to keep it as an app that works offline.
+
+**As a desktop app**: `emb3d-wb app` opens the app in its own window. The program carries the whole
+app and serves it on this computer only (`http://127.0.0.1:8000`):
+
+    emb3d-wb app                 # open the app in its own window
+    emb3d-wb app --port 8417     # another port, if 8000 is taken
+    emb3d-wb app --no-open       # only serve; open the address in any browser
+
+The window needs Chromium, Chrome or Edge (`CHROME=/path/to/browser` picks one); without one, the
+address is printed. In that window, **Install EMB3D Workbench** adds it to the system's app menu:
+it then starts from there and works offline, also when `emb3d-wb app` is not running. Keep the
+same port, because the installed app and its saved project belong to that address.
+
+On Linux, `make install` puts `emb3d-wb` in `~/.local/bin` with its icon and a menu entry
+(`emb3d-wb.desktop`), so **EMB3D Workbench** appears in the applications menu; `make uninstall`
+removes it (`PREFIX=/usr/local` installs for all users).
+
+## Develop
+
+Work in the devcontainer (`.devcontainer/`): it has Rust, the wasm32 target and Python (for
+`tools/emb3d_update.py`). The first build installs `wasm-bindgen` (the version in `Cargo.lock`)
+and `wasm-opt` into `target/tools/`, not system-wide.
+
+    make build     # the PWA → dist/ (static files, host them anywhere)
+    make bin       # target/release/emb3d-wb with dist/ inside: one file to copy anywhere
+    make app       # make bin, then emb3d-wb app
+    make serve     # make bin, then emb3d-wb app --no-open (http://127.0.0.1:8000)
+    make install   # make bin, then install it with its menu entry (PREFIX, default ~/.local)
+    make test      # unit tests (tests/unit/) + command-line tests (tests/cli.rs)
+    make lint      # rustfmt + clippy
+    make security  # cargo-audit + cargo-deny (licences, sources)
+
+`dist/` is self-contained (about 850 KB: the wasm and the EMB3D releases are gzip files that the
+page inflates itself, so no server compression is needed). Browsers keep all of it in their
+offline cache: the app, the component library and every EMB3D release in `data/stix/index.json`.
+It can also be published on the b-stream site as a hosted app (`content/apps/emb3d-tm/`).
 
 ## Layout
 
 | Path | What it is | Who edits it |
 |---|---|---|
-| `index.html`, `app.js` | The app (plain HTML/JS) | Code changes |
-| `stix.js` | Reads a MITRE EMB3D STIX bundle into the app's data model | Code changes |
-| `engine.js` | Rules, TM-BOM export and report markup, shared by the app and the CLI | Code changes |
-| `cli/emb3d-wb.js` | Command line (Node 18+, no dependencies) | Code changes |
-| `cli/yocto-scan.js` | Yocto image + CycloneDX SBOMs → first project | Code changes |
+| `src/stix.rs` | Reads a MITRE EMB3D STIX bundle into the app's data model | Code changes |
+| `src/model.rs`, `src/engine.rs` | Project format, rules, TM-BOM export and report markup | Code changes |
+| `src/ops.rs` | Editing operations (add, move into devices, copy/paste, split, import) | Code changes |
+| `src/ui/` | The browser app (Leptos components) | Code changes |
+| `src/cli/` | Command line and Yocto scanner (native builds of the same crate) | Code changes |
+| `index.html`, `style.css`, `Makefile` | Page, styles, the build (`FILES`: what ships) | Code changes |
+| `manifest.webmanifest`, `sw.js`, `icon*` | PWA: install metadata and the offline cache | Code changes |
 | `library/yocto-rules.json` | What the scanner looks for and how it answers each question | Add or tune rules here |
-| `examples/system/` | Generic multi-device example the app opens with | |
+| `examples/index.json` | Templates offered by New (the first opens on a first visit) | Add examples here |
+| `examples/system/` | Generic multi-device example | |
 | `examples/yocto-scan/` | Synthetic deploy dir (Raspberry Pi gateway) and a `bitbake -e` sample, used by the tests | |
-| `tests/run.js` | `node tests/run.js` | |
+| `build.rs` | With the `pwa` feature (`make bin`), embeds `dist/` in the command line | Code changes |
+| `emb3d-wb.desktop` | Menu entry for `emb3d-wb app` (`make install`) | |
+| `tests/unit/` | Unit tests, one file per source file at the same path (`src/ops.rs` → `tests/unit/ops.rs`) | |
+| `tests/cli.rs` | Command-line and scanner tests (`cargo test`) | |
 | `library/components.json` | Component palette and questionnaires. Each answer adds EMB3D property IDs (PIDs). | Add or tune components here |
 | `data/stix/*.json` | MITRE's STIX releases, byte-for-byte as published | Only via `tools/emb3d_update.py` |
 | `data/stix/index.json` | Available versions, their SHA-256 and the default version | Only via `tools/emb3d_update.py` |
@@ -60,14 +122,22 @@ inside it.
 - **Custom blocks** (left rail, New custom block): pick the EMB3D properties the block has and add
   your own threats with countermeasures. Custom block types are saved in the project and can be
   edited later; their threats are tracked, reported and exported like EMB3D ones.
+- **Import blocks…** (left rail, Custom blocks) adds the block types of another project, a
+  Workbench TM-BOM or a component library file (`{"components": [...]}`, the format of
+  `library/components.json`) to this project, so a team can share its components. Imported
+  types may have questions whose answers add EMB3D properties, like library components.
+  Types the project already has are kept as they are.
 
 In the TM-BOM, device boxes are components and every component inside a device points at it with
 `parent_component`. Projects from earlier versions (a single list of nodes) open as one page.
 The app opens on `examples/system/connected-vision-system.project.json`, a generic example.
+**New** offers an empty project or any example of `examples/index.json` as a template; to add one,
+list it there and add the file to `FILES` in the Makefile (the offline cache follows the
+index).
 
 ## First model from a Yocto image and SBOMs
 
-    node cli/emb3d-wb.js scan --deploy build/tmp/deploy/images/<machine> [--image <image>] \
+    emb3d-wb scan --deploy build/tmp/deploy/images/<machine> [--image <image>] \
          [--sbom extra.cdx.json ...] [--kernel-config .config] [--uboot-config u-boot/.config] \
          [--bbenv bitbake-e.txt] -o project.json --tmbom first.tmbom.json [--report report.html]
 
@@ -108,17 +178,23 @@ Conditions:
 
 A condition whose input was not given is neither true nor false: it never selects an answer, and the
 answer that is finally chosen is flagged for review with the missing input named. `flows` connect
-components by rule id. Run `node tests/run.js` after changing rules.
+components by rule id. Rules are [Rust regular expressions](https://docs.rs/regex/latest/regex/#syntax)
+(no look-around); run `make test` after changing them.
 
 ## Command line
 
-    node cli/emb3d-wb.js library                      # component types, question ids, allowed values
-    node cli/emb3d-wb.js validate project.json        # errors, unanswered questions, answers to review
-    node cli/emb3d-wb.js analyze project.json \
-         --tmbom out.tmbom.json --report out.html [--pdf out.pdf] [--summary out.json] [--list]
-    node cli/emb3d-wb.js analyze project.json --fail-on-open 0   # CI gate: exit 2 when threats are open
+`cargo install --path .` installs `emb3d-wb` (or use `cargo run --release -- <command>` in the
+source tree). It reads `library/`, `data/stix/` and `style.css` from `$EMB3D_WB_ROOT`, by default
+the source tree it was built from.
 
-`--pdf` uses a local Chrome/Chromium (set `CHROME=` if it is not on the PATH). Any TM-BOM exported by
+    emb3d-wb library                      # component types, question ids, allowed values
+    emb3d-wb validate project.json        # errors, unanswered questions, answers to review
+    emb3d-wb analyze project.json \
+         --tmbom out.tmbom.json --report out.html [--pdf out.pdf] [--summary out.json] [--list]
+    emb3d-wb analyze project.json --fail-on-open 0   # CI gate: exit 2 when threats are open
+
+`--pdf` uses a local Chrome/Chromium (set `CHROME=` if it is not on the PATH); rootfs tarballs
+are read with the system `tar`. HTML reports are standalone and load nothing from the network. Any TM-BOM exported by
 the Workbench is also accepted as input.
 
 Project files may carry, per component, `evidence` (`{question id: [{file, line, text}]}`, with
@@ -140,9 +216,9 @@ New releases:
     python3 tools/emb3d_update.py verify           # hashes + library PIDs, run in CI
 
 The weekly workflow runs `check` and opens an issue proposing the update; a maintainer
-runs `add`, reviews the change summary in the app, and commits. "Check for updates" in
-the app does the same check from the browser and can load a new release for the
-current session only.
+runs `add`, reviews the change summary in the app, and commits. "Updates" in the app
+does the same check from the browser and can load a new release for the current
+session only.
 
 ## Rules
 
@@ -164,5 +240,6 @@ uses the browser's print dialog (A4 landscape).
 
 ## Saving
 
-Work is kept in the browser's local storage. "Save" shows the project JSON to copy;
-"Export TM-BOM" embeds the project too, so either file can be opened again with "Open…".
+Work is kept in the browser's local storage (offline too). "Save" downloads
+`<project-name>.project.json` and "Export TM-BOM" downloads `<project-name>.tmbom.json`; the TM-BOM
+embeds the project too, so either file can be opened again with "Open…".
