@@ -21,7 +21,7 @@ web-sys              = { version = "0.3", features = [
     "Selection", "ServiceWorkerContainer", "Storage", "Url", "Window",
 ] }
 
-# No unsafe code of our own (SECURITY.md); clippy runs with warnings as errors.
+# No unsafe code of our own (.github/SECURITY.md); clippy runs with warnings as errors.
 [lints.rust]
 unsafe_code = "forbid"
 

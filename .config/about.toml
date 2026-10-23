@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 # cargo-about (`make package`): the licences of every dependency that ships in
 # the program or the app, for THIRD-PARTY-LICENSES.txt. Same policy as
-# deny.toml: GPLv2-compatible licences, MIT chosen over Apache-2.0.
+# .config/deny.toml: GPLv2-compatible licences, MIT chosen over Apache-2.0.
 accepted = ["MIT", "BSL-1.0", "Unicode-3.0", "Zlib", "Unlicense", "CC0-1.0", "GPL-2.0-only"]
 targets = ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
 ignore-build-dependencies = true

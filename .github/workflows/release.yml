@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 #
 # Release, started by a maintainer ("Run workflow" on main). The commit
-# messages decide (Conventional Commits, cliff.toml): `make release` computes
+# messages decide (Conventional Commits, .config/cliff.toml): `make release` computes
 # the next version from the commits since the last tag, writes Cargo.toml and
 # CHANGELOG.md, commits and tags vX.Y.Z. If main is already tagged (a
 # maintainer ran `make release` and pushed), that tag is published instead.

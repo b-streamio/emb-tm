@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 #
 # git-cliff: the version and CHANGELOG.md come from the commit messages
-# (Conventional Commits, see CONTRIBUTING.md). `make release` uses it.
+# (Conventional Commits, see .github/CONTRIBUTING.md). `make release` uses it.
 
 [changelog]
 header = """
