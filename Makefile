@@ -35,8 +35,8 @@ ABOUT := target/tools/cargo-about-0.9.2/bin/cargo-about
 CLIFF := target/tools/git-cliff-2.14.2/bin/git-cliff
 
 # Minimum line coverage of the code that runs natively (`make coverage`).
-# The Leptos views (src/ui/ apart from web.rs) only run in a browser and are
-# left out of the figure; raise the minimum when coverage grows.
+# The browser-only code (Leptos views and the browser API wrappers in src/ui/)
+# is left out of the figure; raise the minimum when coverage grows.
 COVERAGE_MIN := 0
 COVERAGE_SKIP := src/ui/(board|dialogs|inspector|mod|tables)\.rs|src/main\.rs|tests/
 
