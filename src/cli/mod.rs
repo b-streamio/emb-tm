@@ -1,24 +1,29 @@
 // SPDX-License-Identifier: GPL-2.0-only
 //! The command line: the browser app's engine, from a terminal or CI.
 
+mod analyze;
 mod app;
+mod library;
+mod report;
+mod scan;
 mod yocto;
 
 use std::{
     fs,
     path::{Path, PathBuf},
-    process::{Command, Stdio},
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use serde_json::{json, Value};
+use serde_json::Value;
 
 use crate::{
-    engine::{around, esc, Model, ReportOpts, Summary},
     model::{Library, Project},
     stix::{self, Emb3d},
 };
-
+use analyze::{analyze, validate};
+use library::{library, versions};
+use report::find_chrome;
+use scan::scan_cmd;
 pub use yocto::{from_deploy_dir, parse_bbenv, scan, Inputs};
 
 const USAGE: &str = "\
@@ -205,65 +210,6 @@ fn plain(v: &Value) -> String {
     v.as_str().map_or_else(|| v.to_string(), str::to_owned)
 }
 
-fn library(a: &Args) -> Result<i32, String> {
-    if a.has("json") {
-        print!(
-            "{}",
-            pretty(&read_json(&root().join("library/components.json"))?)
-        );
-        return Ok(0);
-    }
-    let lib = load_library()?;
-    for g in &lib.groups {
-        println!("\n## {g}");
-        for c in lib.components.iter().filter(|c| &c.group == g) {
-            let ext = if c.external { "  external" } else { "" };
-            let cont = if c.container {
-                "  container: fields page, qty"
-            } else {
-                ""
-            };
-            println!("\ntype: {}  ({}){ext}{cont}\n  {}", c.kind, c.name, c.hint);
-            for q in &c.questions {
-                let default = plain(&q.default);
-                if q.kind == "bool" {
-                    println!("  - {}: true|false  default {default}  — {}", q.id, q.text);
-                    continue;
-                }
-                let values: Vec<&str> = q.options.iter().map(|o| o.value.as_str()).collect();
-                println!(
-                    "  - {}: {}  default {default}  — {}",
-                    q.id,
-                    values.join("|"),
-                    q.text
-                );
-                for o in &q.options {
-                    println!("      {}: {}", o.value, o.label);
-                }
-            }
-        }
-    }
-    Ok(0)
-}
-
-fn versions() -> Result<i32, String> {
-    let idx = index()?;
-    for v in idx["versions"].as_array().into_iter().flatten() {
-        let default = if v["version"] == idx["default"] {
-            "  (default)"
-        } else {
-            ""
-        };
-        println!(
-            "{}{default}  {}  added {}",
-            plain(&v["version"]),
-            plain(&v["file"]),
-            plain(&v["added"])
-        );
-    }
-    Ok(0)
-}
-
 fn load_project(file: &str) -> Result<Project, String> {
     let v = read_json(Path::new(file))?;
     let mut p = Project::from_json(v).map_err(|e| format!("{file}: {e}"))?;
@@ -283,318 +229,6 @@ fn release_for(p: &mut Project, a: &Args) -> Result<Emb3d, String> {
     };
     p.emb3d = Some(version.clone());
     load_emb3d(&version)
-}
-
-fn validate(a: &Args) -> Result<i32, String> {
-    let file = a
-        .pos
-        .get(1)
-        .ok_or("usage: emb3d-wb validate <project.json>")?;
-    let mut p = load_project(file)?;
-    let (e, lib) = (release_for(&mut p, a)?, load_library()?);
-    let m = Model::new(&e, &lib, &p);
-    let (errors, warnings) = m.validate(&p);
-    for w in &warnings {
-        println!("warning: {w}");
-    }
-    for e in &errors {
-        println!("error:   {e}");
-    }
-    m.normalize(&mut p);
-    let review = m.review_items(&p);
-    for r in &review {
-        println!(
-            "review:  {}: {}{}",
-            r.node.name,
-            r.question,
-            around(" — ", &r.reason, "")
-        );
-    }
-    println!(
-        "{} errors, {} warnings, {} answers to review",
-        errors.len(),
-        warnings.len(),
-        review.len()
-    );
-    Ok(i32::from(!errors.is_empty()))
-}
-
-fn analyze(a: &Args) -> Result<i32, String> {
-    let file = a.pos.get(1).ok_or("usage: emb3d-wb analyze <project.json> [--tmbom f] [--report f.html] [--pdf f.pdf] [--summary f.json]")?;
-    let mut p = load_project(file)?;
-    let (e, lib) = (release_for(&mut p, a)?, load_library()?);
-    let m = Model::new(&e, &lib, &p);
-    let (errors, _) = m.validate(&p);
-    if !errors.is_empty() {
-        return Err(format!(
-            "Project has errors; run \"emb3d-wb validate\":\n{}",
-            errors.join("\n")
-        ));
-    }
-    m.normalize(&mut p);
-    outputs(&p, &m, a)
-}
-
-fn scan_cmd(a: &Args) -> Result<i32, String> {
-    let out = a.get("o").or_else(|| a.get("out")).ok_or(
-        "usage: emb3d-wb scan --deploy <dir> [--sbom f ...] -o project.json [--tmbom f] [--report f.html]",
-    )?;
-    let mut inputs = match a.get("deploy") {
-        Some(dir) => from_deploy_dir(Path::new(dir), a.get("image"))?,
-        None => Inputs::default(),
-    };
-    for (flag, slot) in [
-        ("testdata", &mut inputs.testdata),
-        ("bbenv", &mut inputs.bbenv),
-        ("manifest", &mut inputs.manifest),
-        ("rootfs", &mut inputs.rootfs),
-        ("kernel-config", &mut inputs.kernel_config),
-        ("uboot-config", &mut inputs.uboot_config),
-    ] {
-        if let Some(v) = a.get(flag) {
-            *slot = Some(v.into());
-        }
-    }
-    if let Some(i) = a.get("image") {
-        inputs.image = Some(i.into());
-    }
-    for s in a.all("sbom") {
-        if !inputs.sboms.iter().any(|x| x == Path::new(s)) {
-            inputs.sboms.push(s.into());
-        }
-    }
-    if inputs.testdata.is_none()
-        && inputs.bbenv.is_none()
-        && inputs.manifest.is_none()
-        && inputs.sboms.is_empty()
-        && inputs.rootfs.is_none()
-    {
-        return Err(
-            "No inputs found. Give --deploy, or --testdata/--bbenv, --manifest, --sbom, --rootfs."
-                .into(),
-        );
-    }
-    let rules = match a.get("rules") {
-        Some(f) => read_json(Path::new(f))?,
-        None => read_json(&root().join("library/yocto-rules.json"))?,
-    };
-    let lib = load_library()?;
-    let (mut p, notes) = scan(&inputs, &rules, &lib, &today()).map_err(|e| format!("scan: {e}"))?;
-    p.migrate();
-    let e = release_for(&mut p, a)?;
-    let m = Model::new(&e, &lib, &p);
-    let (errors, _) = m.validate(&p);
-    if !errors.is_empty() {
-        return Err(format!(
-            "Scanner produced an invalid project (check the rules file):\n{}",
-            errors.join("\n")
-        ));
-    }
-    m.normalize(&mut p);
-    write(out, &pretty(&p.to_json()))?;
-    println!(
-        "Scanned {}: {} variables, {} packages, {} SBOMs ({} open vulnerabilities)",
-        inputs.image.as_deref().unwrap_or(&p.name),
-        notes.variables,
-        notes.packages,
-        notes.sboms.len(),
-        notes.cve_open
-    );
-    println!("  inputs: {}", notes.used.join(", "));
-    for s in &notes.skipped {
-        println!("  {s}");
-    }
-    println!("wrote {out}");
-    outputs(&p, &m, a)
-}
-
-/// `--summary`: the counts, with the key names of the original Node CLI.
-fn summary_json(s: &Summary, version: &str) -> Value {
-    let e = s.open_by_evidence;
-    json!({
-        "emb3d": version, "pages": s.pages, "devices": s.devices, "components": s.components, "flows": s.flows,
-        "threats": s.threats, "open": s.open, "mitigated": s.mitigated, "notApplicable": s.not_applicable, "accepted": s.accepted,
-        "openByEvidence": {"observedInAttacks": e[0], "observedTechnique": e[1], "knownWeakness": e[2], "proofOfConcept": e[3], "custom": e[4]},
-        "countermeasures": s.countermeasures, "implemented": s.implemented,
-        "missingJustifications": s.missing_justifications, "needsReview": s.needs_review,
-    })
-}
-
-/// A report that opens anywhere: the app's report styles inlined, no web fonts.
-fn standalone_html(p: &Project, m: &Model, o: ReportOpts) -> Result<String, String> {
-    let css = read(&root().join("web/style.css"))?;
-    let block = css
-        .split_once("/* report-css:begin")
-        .and_then(|(_, rest)| rest.split_once("*/"))
-        .and_then(|(_, rest)| rest.split_once("/* report-css:end */"))
-        .map(|(block, _)| block)
-        .ok_or("web/style.css: report-css markers not found")?;
-    Ok(format!(
-        r#"<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Threat model - {}</title>
-<style>
-:root {{ --f-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif; --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace; --shadow: none; color-scheme: light; }}
-html, body {{ margin: 0; background: #fff; color: #1d2320; font-family: var(--f-body); font-size: 14px; line-height: 1.45; }}
-body {{ padding: 24px max(16px, env(safe-area-inset-left, 0px)); }}
-.small {{ font-size: 12.5px; }} .muted {{ color: #5c6662; }}
-{block}</style></head>
-<body>{}</body></html>
-"#,
-        esc(&p.name),
-        m.report_html(p, o, &today())
-    ))
-}
-
-/// A Chrome or Chromium that runs: `$CHROME`, then the usual names.
-fn find_chrome() -> Option<String> {
-    let env = std::env::var("CHROME").ok();
-    let names = [
-        "chromium",
-        "chromium-browser",
-        "google-chrome",
-        "google-chrome-stable",
-        "/opt/pw-browsers/chromium",
-        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-    ];
-    env.into_iter().chain(names.map(str::to_owned)).find(|bin| {
-        Command::new(bin)
-            .arg("--version")
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-            .is_ok_and(|s| s.success())
-    })
-}
-
-fn print_pdf(html: &str, a: &Args, pdf: &str) -> Result<(), String> {
-    let chrome = find_chrome().ok_or("No Chrome/Chromium found for --pdf. Set CHROME=/path/to/chrome, or open the HTML report and print it.")?;
-    let abs = |f: &str| std::path::absolute(f).map_err(|e| format!("{f}: {e}"));
-    let (page, temporary) = match a.get("report") {
-        Some(r) => (abs(r)?, false),
-        None => {
-            let t = std::env::temp_dir().join(format!("emb3d-report-{}.html", std::process::id()));
-            fs::write(&t, html).map_err(|e| format!("{}: {e}", t.display()))?;
-            (t, true)
-        }
-    };
-    let status = Command::new(&chrome)
-        .args([
-            "--headless",
-            "--disable-gpu",
-            "--no-sandbox",
-            "--no-pdf-header-footer",
-        ])
-        .arg(format!("--print-to-pdf={}", abs(pdf)?.display()))
-        .arg(format!("file://{}", page.display()))
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status();
-    if temporary {
-        let _ = fs::remove_file(&page);
-    }
-    match status {
-        Ok(s) if s.success() => Ok(()),
-        _ => Err(format!("{chrome} could not print {pdf}")),
-    }
-}
-
-/// Writes the requested files and prints the summary; 2 when `--fail-on-open` trips.
-fn outputs(p: &Project, m: &Model, a: &Args) -> Result<i32, String> {
-    let s = m.summary(p);
-    if let Some(f) = a.get("tmbom") {
-        write(f, &pretty(&m.to_tmbom(p, &today())))?;
-    }
-    if let Some(f) = a.get("project") {
-        write(f, &pretty(&p.to_json()))?;
-    }
-    if let Some(f) = a.get("summary") {
-        write(f, &pretty(&summary_json(&s, &m.e.version)))?;
-    }
-    if a.has("report") || a.has("pdf") {
-        let o = ReportOpts {
-            fulltext: a.has("fulltext"),
-            ..Default::default()
-        };
-        let html = standalone_html(p, m, o)?;
-        if let Some(f) = a.get("report") {
-            write(f, &html)?;
-        }
-        if let Some(f) = a.get("pdf") {
-            print_pdf(&html, a, f)?;
-        }
-    }
-
-    let multi = p.pages.len() > 1;
-    let ev = s.open_by_evidence;
-    println!("{} — MITRE EMB3D {}", p.name, m.e.version);
-    let devices = if s.pages > 1 {
-        format!("devices {}, pages {}, ", s.devices, s.pages)
-    } else {
-        String::new()
-    };
-    println!(
-        "  {devices}components {}, data flows {}",
-        s.components, s.flows
-    );
-    println!(
-        "  threats {}: open {}, mitigated {}, not applicable {}, accepted {}",
-        s.threats, s.open, s.mitigated, s.not_applicable, s.accepted
-    );
-    println!("  open by evidence: observed in attacks {}, observed technique {}, known weakness {}, proof of concept {}", ev[0], ev[1], ev[2], ev[3]);
-    println!(
-        "  countermeasures implemented {} of {}",
-        s.implemented, s.countermeasures
-    );
-    if s.missing_justifications > 0 {
-        println!(
-            "  decisions missing a justification: {}",
-            s.missing_justifications
-        );
-    }
-    let page_prefix = |id: u64| match p.page_of(id) {
-        Some(pg) if multi => format!("{} > ", pg.name),
-        _ => String::new(),
-    };
-    if s.needs_review > 0 {
-        println!("  answers needing review: {}", s.needs_review);
-        for r in m.review_items(p) {
-            println!(
-                "    - {}{}: {}{}",
-                page_prefix(r.node.id),
-                r.node.name,
-                r.question,
-                around(" — ", &r.reason, "")
-            );
-        }
-    }
-    if a.has("list") {
-        for n in p.nodes().filter(|n| m.has_threats(n)) {
-            let kind = m.type_of(n).map_or("", |t| t.name.as_str());
-            println!("\n{}{} ({kind})", page_prefix(n.id), n.name);
-            for h in m.node_threats(p, n) {
-                let state = m.threat_state(n, &h.tid).key();
-                println!(
-                    "  {}  {state:<9} {}  [via {}]",
-                    h.tid,
-                    h.t.name,
-                    h.via.join(", ")
-                );
-            }
-        }
-    }
-    for k in ["tmbom", "report", "pdf", "summary", "project"] {
-        if let Some(f) = a.get(k) {
-            println!("wrote {f}");
-        }
-    }
-    let limit = a.get("fail-on-open").and_then(|n| n.parse::<usize>().ok());
-    Ok(if limit.is_some_and(|n| s.open > n) {
-        2
-    } else {
-        0
-    })
 }
 
 #[cfg(test)]
