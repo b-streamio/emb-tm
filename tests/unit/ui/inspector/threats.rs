@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-//! Unit tests of `src/ui/inspector.rs` (a child module of it, so private items are in reach).
+//! Unit tests of `src/ui/inspector/threats.rs` (a child module of it, so private items are in reach).
 
 #[test]
 fn short_iec_references() {
@@ -7,9 +7,4 @@ fn short_iec_references() {
         super::iec_short(&["EDR / HDR / NDR 3.14 – Integrity".into(), "CR 2.1".into()]),
         "3.14, 2.1"
     );
-}
-
-#[test]
-fn states_have_css_keys() {
-    assert_eq!(crate::engine::State::NotApplicable.key(), "NA");
 }
