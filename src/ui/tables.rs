@@ -155,7 +155,25 @@ pub fn Countermeasures() -> impl IntoView {
 pub fn Report() -> impl IntoView {
     let ctx = ctx();
     let opts = ctx.report;
-    let toggles = [
+    let html = move || {
+        let o = opts.get();
+        ctx.with(|p, m| m.report_html(p, o, &Ctx::today()))
+    };
+    view! {
+        <div class="ropts no-print">
+            <div class="ropt-row">{toggles(opts)}
+                <button class="btn primary" on:click=move |_| web::print(&format!("Threat model - {}", ctx.project.with_untracked(|p| p.name.clone())))>"Print / Save as PDF"</button>
+            </div>
+            <div class="ropt-meta">{meta(ctx, "owner", "Owner", false)}{meta(ctx, "reviewer", "Reviewer", false)}{meta(ctx, "description", "Description", true)}</div>
+            <p class="small muted">"Print opens your browser's print dialog; choose \"Save as PDF\"."</p>
+        </div>
+        <div inner_html=html></div>
+    }
+}
+
+/// The check boxes of the report options.
+fn toggles(opts: RwSignal<ReportOpts>) -> impl IntoView {
+    [
         ("diagram", "Show model diagram"),
         ("mitigated", "Show mitigated threats"),
         ("closed", "Show not applicable and accepted threats"),
@@ -181,41 +199,29 @@ pub fn Report() -> impl IntoView {
             _ => o.fulltext = v,
         };
         view! { <label class="check"><input type="checkbox" prop:checked=move || opts.with(get) on:change=move |e| { let v = event_target_checked(&e); opts.update(|o| set(o, v)) } /><span>{label}</span></label> }
-    });
-    let meta = |key: &'static str, label: &'static str, area: bool| {
-        let get = move |m: &Meta| match key {
-            "owner" => m.owner.clone(),
-            "reviewer" => m.reviewer.clone(),
-            _ => m.description.clone(),
-        };
-        let value = ctx.project.with_untracked(|p| get(&p.meta));
-        let input = move |e: leptos::ev::Event| {
-            let v = event_target_value(&e);
-            ctx.typing(|p| match key {
-                "owner" => p.meta.owner = v,
-                "reviewer" => p.meta.reviewer = v,
-                _ => p.meta.description = v,
-            });
-        };
-        let id = format!("rm-{key}");
-        if area {
-            view! { <div class="field wide"><label for=id.clone()>{label}</label><textarea id=id rows="2" placeholder="What the device is, where it is deployed, what is in scope" on:input=input on:change=move |_| ctx.project.notify()>{value}</textarea></div> }.into_any()
-        } else {
-            view! { <div class="field"><label for=id.clone()>{label}</label><input type="text" id=id value=value on:input=input on:change=move |_| ctx.project.notify() /></div> }.into_any()
-        }
+    })
+}
+
+/// A report header field: owner, reviewer or description.
+fn meta(ctx: Ctx, key: &'static str, label: &'static str, area: bool) -> AnyView {
+    let get = move |m: &Meta| match key {
+        "owner" => m.owner.clone(),
+        "reviewer" => m.reviewer.clone(),
+        _ => m.description.clone(),
     };
-    let html = move || {
-        let o = opts.get();
-        ctx.with(|p, m| m.report_html(p, o, &Ctx::today()))
+    let value = ctx.project.with_untracked(|p| get(&p.meta));
+    let input = move |e: leptos::ev::Event| {
+        let v = event_target_value(&e);
+        ctx.typing(|p| match key {
+            "owner" => p.meta.owner = v,
+            "reviewer" => p.meta.reviewer = v,
+            _ => p.meta.description = v,
+        });
     };
-    view! {
-        <div class="ropts no-print">
-            <div class="ropt-row">{toggles}
-                <button class="btn primary" on:click=move |_| web::print(&format!("Threat model - {}", ctx.project.with_untracked(|p| p.name.clone())))>"Print / Save as PDF"</button>
-            </div>
-            <div class="ropt-meta">{meta("owner", "Owner", false)}{meta("reviewer", "Reviewer", false)}{meta("description", "Description", true)}</div>
-            <p class="small muted">"Print opens your browser's print dialog; choose \"Save as PDF\"."</p>
-        </div>
-        <div inner_html=html></div>
+    let id = format!("rm-{key}");
+    if area {
+        view! { <div class="field wide"><label for=id.clone()>{label}</label><textarea id=id rows="2" placeholder="What the device is, where it is deployed, what is in scope" on:input=input on:change=move |_| ctx.project.notify()>{value}</textarea></div> }.into_any()
+    } else {
+        view! { <div class="field"><label for=id.clone()>{label}</label><input type="text" id=id value=value on:input=input on:change=move |_| ctx.project.notify() /></div> }.into_any()
     }
 }
