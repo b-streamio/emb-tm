@@ -179,52 +179,64 @@ pub fn parse(bundle: &Value, version: &str) -> Result<Emb3d, String> {
         ..Default::default()
     };
     for o in objs {
-        let (kind, desc) = (text(o, "type"), text(o, "description"));
-        let (pid, tid, mid) = (
-            text(o, "x_mitre_emb3d_property_id"),
-            text(o, "x_mitre_emb3d_threat_id"),
-            text(o, "x_mitre_emb3d_mitigation_id"),
-        );
-        if kind == "x-mitre-emb3d-property" {
-            e.properties.insert(
-                pid.into(),
-                Property {
-                    name: text(o, "name").into(),
-                    cat: text(o, "category").into(),
-                    parent: None,
-                },
-            );
-        } else if kind == "vulnerability" && !tid.is_empty() {
-            let text_ = paras(desc);
-            e.threats.insert(
-                tid.into(),
-                Threat {
-                    name: text(o, "name").into(),
-                    cat: text(o, "x_mitre_emb3d_threat_category").into(),
-                    maturity: text(o, "x_mitre_emb3d_threat_maturity").into(),
-                    desc: text_.first().cloned().unwrap_or_default(),
-                    text: text_,
-                    cwes: cwes(text(o, "x_mitre_emb3d_threat_CWEs")),
-                    cves: bullets(text(o, "x_mitre_emb3d_threat_CVEs")).len(),
-                    ..Default::default()
-                },
-            );
-        } else if kind == "course-of-action" && !mid.is_empty() {
-            let text_ = paras(desc);
-            e.mitigations.insert(
-                mid.into(),
-                Mitigation {
-                    name: text(o, "name").into(),
-                    maturity: text(o, "x_mitre_emb3d_mitigation_maturity").into(),
-                    desc: text_.first().cloned().unwrap_or_default(),
-                    text: text_,
-                    refs: refs(text(o, "x_mitre_emb3d_mitigation_references")),
-                    iec: bullets(text(o, "x_mitre_emb3d_mitigation_IEC_62443_mappings")),
-                    custom: false,
-                },
-            );
-        }
+        add_object(&mut e, o);
     }
+    link(&mut e, objs, &by_id);
+    Ok(e)
+}
+
+/// Adds a property, threat or mitigation object to `e`.
+fn add_object(e: &mut Emb3d, o: &Value) {
+    let (kind, desc) = (text(o, "type"), text(o, "description"));
+    let (pid, tid, mid) = (
+        text(o, "x_mitre_emb3d_property_id"),
+        text(o, "x_mitre_emb3d_threat_id"),
+        text(o, "x_mitre_emb3d_mitigation_id"),
+    );
+    if kind == "x-mitre-emb3d-property" {
+        e.properties.insert(
+            pid.into(),
+            Property {
+                name: text(o, "name").into(),
+                cat: text(o, "category").into(),
+                parent: None,
+            },
+        );
+    } else if kind == "vulnerability" && !tid.is_empty() {
+        let text_ = paras(desc);
+        e.threats.insert(
+            tid.into(),
+            Threat {
+                name: text(o, "name").into(),
+                cat: text(o, "x_mitre_emb3d_threat_category").into(),
+                maturity: text(o, "x_mitre_emb3d_threat_maturity").into(),
+                desc: text_.first().cloned().unwrap_or_default(),
+                text: text_,
+                cwes: cwes(text(o, "x_mitre_emb3d_threat_CWEs")),
+                cves: bullets(text(o, "x_mitre_emb3d_threat_CVEs")).len(),
+                ..Default::default()
+            },
+        );
+    } else if kind == "course-of-action" && !mid.is_empty() {
+        let text_ = paras(desc);
+        e.mitigations.insert(
+            mid.into(),
+            Mitigation {
+                name: text(o, "name").into(),
+                maturity: text(o, "x_mitre_emb3d_mitigation_maturity").into(),
+                desc: text_.first().cloned().unwrap_or_default(),
+                text: text_,
+                refs: refs(text(o, "x_mitre_emb3d_mitigation_references")),
+                iec: bullets(text(o, "x_mitre_emb3d_mitigation_IEC_62443_mappings")),
+                custom: false,
+            },
+        );
+    }
+}
+
+/// Applies the relationships: sub-properties, and the properties and
+/// mitigations of each threat.
+fn link(e: &mut Emb3d, objs: &[Value], by_id: &HashMap<&str, &Value>) {
     let mut pids: BTreeMap<&str, BTreeSet<&str>> = BTreeMap::new();
     let mut mids: BTreeMap<&str, BTreeSet<&str>> = BTreeMap::new();
     for r in objs.iter().filter(|o| o["type"] == "relationship") {
@@ -268,7 +280,6 @@ pub fn parse(bundle: &Value, version: &str) -> Result<Emb3d, String> {
         t.pids.sort_by(|a, b| num_cmp(a, b));
         t.mids = ids(&mut mids);
     }
-    Ok(e)
 }
 
 /// What changes for a project when moving from release `a` to `b`.
