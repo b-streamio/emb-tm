@@ -97,7 +97,7 @@ version and the changelog. The pipelines in `.github/workflows/` run on Gitea an
 
 | Path | Contents |
 |---|---|
-| `src/` | `stix.rs` (EMB3D data), `model.rs` (file format), `engine.rs` (rules, TM-BOM, report), `ops.rs` (editing), `ui/` (the app), `cli/` (command line, scanner, app server) |
+| `src/` | `stix.rs` (EMB3D data), `model/` (file format), `engine/` (rules, TM-BOM, report), `ops/` (editing), `ui/` (the app), `cli/` (command line, scanner, app server) |
 | `web/` | Page, styles, service worker, manifest, icons, menu entry |
 | `library/` | Component library and scanner rules |
 | `data/stix/` | MITRE's EMB3D releases, as published (`tools/emb3d_update.py` manages them) |
