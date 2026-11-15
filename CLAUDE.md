@@ -72,7 +72,7 @@ web/           the app shell, copied to the top of dist/: index.html (the page
 Makefile       the build: cargo → wasm-bindgen → wasm-opt → dist/
 ```
 `stix`, `model`, `engine`, `ops` have no browser API and are unit-tested
-natively against the real STIX files and examples. Tests pin the numbers
+natively against the real STIX files (`make data` downloads them) and examples. Tests pin the numbers
 (surveillance and alarm system example 208 threats, 413 countermeasures;
 alarm hub Yocto example 98 threats, 166 countermeasures; regenerate the
 latter with `emb-tm scan` after changing the rules or the fixture). JSON goes through `serde_json::Value` only
@@ -88,7 +88,7 @@ with `dist/` embedded, feature `pwa`), `make app` (`emb-tm app`:
 serves the embedded app on 127.0.0.1:8000 and opens it in its own window),
 `make serve` (same, `--no-open`; installable), `make install` /
 `make uninstall` (binary, icon, `web/emb-tm.desktop` into `PREFIX`, default
-`~/.local`), `make tools` (every pinned tool into `target/tools`, each on
+`~/.local`), `make data` (EMB3D releases from MITRE into `data/stix`), `make tools` (every pinned tool into `target/tools`, each on
 first use), `make test` (cargo: unit + CLI tests), `make lint`,
 `make coverage` (cargo-llvm-cov, fails under `COVERAGE_MIN`), `make security`
 (cargo-audit, cargo-deny), `make sbom` (CycloneDX), `make package` (release
@@ -104,11 +104,15 @@ plain containers) only call these targets.
 - File names in `dist/` are fixed and paths relative: `sw.js` lists files
   by name and the app must run from any origin or sub-path. A new file the
   app fetches must be added to `WEB` or `FILES` in the Makefile **and** to
-  `SHELL` in `web/sw.js`, or it breaks offline (STIX releases and examples are cached from
+  `SHELL` in `web/sw.js`, or it breaks offline (examples are cached from
   their `index.json`).
-- `dist/` ships `emb-tm_bg.wasm.gz` and `data/stix/*.json.gz`: `make build`
-  gzips them and the loader in `web/index.html` / `web::fetch_gzip_json`
-  inflate them (`DecompressionStream`). `make serve` does not watch files:
+- MITRE's EMB3D files are never committed or shipped (MITRE's terms of use):
+  `data/stix/index.json` pins each release's URL and SHA-256; the app
+  downloads it on first start with subresource integrity into its own cache
+  (`web::data_json`), `emb-tm fetch` with curl, checked with `sha2`. Examples
+  and reports quote EMB3D text: keep MITRE's designation (`data/stix/README.md`).
+- `dist/` ships `emb-tm_bg.wasm.gz`: `make build` gzips it and the loader in
+  `web/index.html` inflates it (`DecompressionStream`). `make serve` does not watch files:
   run it again after a change (it rebuilds the binary with the new `dist/`).
 - wasm-bindgen must match `Cargo.lock`; the Makefile reads the version from
   it. Never install build tools system-wide (other projects pin their own).

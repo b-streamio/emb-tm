@@ -24,7 +24,8 @@ Contributions are welcome, and much of what the app knows is data (components, s
 examples), so many improvements need no Rust: see [CONTRIBUTING.md](.github/CONTRIBUTING.md).
 Report vulnerabilities as [SECURITY.md](.github/SECURITY.md) says.
 
-**MITRE EMB3D™** data is © The MITRE Corporation and ships under MITRE's own terms, not the GPL
+**MITRE EMB3D™** data is © The MITRE Corporation, under MITRE's own terms, not the GPL: emb-tm
+downloads it from MITRE and does not ship it; the examples and reports quote it
 ([data/stix/README.md](data/stix/README.md)). MITRE is a registered trademark of The MITRE
 Corporation; this project is not affiliated with or endorsed by MITRE.
 
@@ -73,8 +74,11 @@ rootfs, CycloneDX SBOMs, optional kernel and bootloader `.config`) and writes a 
 answer carries its evidence (`file:line`), each package its open vulnerabilities, and anything it
 could not decide is flagged for review. Rules: [library/README.md](library/README.md).
 
-**EMB3D versions**: each project records the EMB3D release it uses; switching shows what changes
-first. New releases come in with `python3 tools/emb3d_update.py check` / `add <version>`.
+**EMB3D data**: emb-tm does not ship MITRE's EMB3D files. On first start the app asks to download
+the release from emb3d.mitre.org, checks it against the SHA-256 that `data/stix/index.json` pins
+and keeps it for offline use; on the command line, `emb-tm fetch` does the same. Each project
+records the EMB3D release it uses; switching shows what changes first. New releases are listed
+with `python3 tools/emb3d_update.py check` / `add <version>`.
 
 **Example**: the app opens on a surveillance and alarm system: cameras and audio sensors report to
 an alarm hub, which contacts the security company's alarm receiving centre. The hub's design comes
@@ -106,7 +110,7 @@ version and the changelog. The pipelines in `.github/workflows/` run on Gitea an
 | `src/` | `stix.rs` (EMB3D data), `model/` (file format), `engine/` (rules, TM-BOM, report), `ops/` (editing), `ui/` (the app), `cli/` (command line, scanner, app server) |
 | `web/` | Page, styles, service worker, manifest, icons, menu entry |
 | `library/` | Component library and scanner rules |
-| `data/stix/` | MITRE's EMB3D releases, as published, under MITRE's terms (`tools/emb3d_update.py` manages them) |
+| `data/stix/` | The EMB3D releases emb-tm can use (`index.json`: MITRE's URL and SHA-256); the files are downloaded, not in git |
 | `examples/` | Templates offered by New (`index.json`) |
 | `tests/` | Unit tests (`unit/`, one file per source file) and command-line tests |
 | `.config/`, `.github/` | Tool settings; contribution guide, security policy, CI |
