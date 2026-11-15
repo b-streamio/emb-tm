@@ -27,4 +27,4 @@ blocks by rule id.
 A condition whose input was not given is neither true nor false: it never selects an answer, and
 the answer finally chosen is flagged for review, naming the missing input. Regular expressions are
 [Rust's](https://docs.rs/regex/latest/regex/#syntax) (no look-around). After changing the rules,
-run `make test` and regenerate the scan example (`examples/yocto-scan/`) with `emb-tm scan`.
+run `make check` and regenerate the scan example (`examples/yocto-scan/`) with `emb-tm scan`.

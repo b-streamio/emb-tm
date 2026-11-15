@@ -31,8 +31,9 @@ Corporation; this project is not affiliated with or endorsed by MITRE.
 
 ## Use it
 
-**Desktop app**: one standalone program (the release archive) carries the whole app and serves it
-on this computer only.
+**Desktop app**: download `emb-tm-<version>-x86_64.AppImage` from the releases, make it executable
+and double-click it; nothing to install, any Linux distribution. The release archive holds the same
+standalone program. It carries the whole app and serves it on this computer only.
 
     emb-tm app               # opens the app in its own window (Chromium, Chrome or Edge)
     emb-tm app --port 8417   # another port if 8000 is taken; --no-open only serves
@@ -92,18 +93,16 @@ project, so either file opens again.
 
 ## Develop
 
-Use the devcontainer (`.devcontainer/`). The first build installs its pinned tools into
+Use the devcontainer (`.devcontainer/`), or the build environment the CI uses: `make image`, then
+run any target below in it. Outside it, the first build installs the pinned tools into
 `target/tools/`, nothing system-wide.
 
-    make build      # the PWA → dist/
-    make bin        # target/release/emb-tm with the app inside
-    make app        # make bin, then open the app (make serve: without a window)
-    make test       # unit tests (tests/unit/) and command-line tests (tests/cli.rs)
-    make lint       # rustfmt and clippy, warnings are errors
-    make coverage   # line coverage, fails under 90%
-    make security   # cargo-audit and cargo-deny
+    make build      # the PWA (dist/) and the static program with it inside
+    make app        # build, then open the app (ARGS=--no-open: serve it only)
+    make check      # commit messages, rustfmt, clippy, tests with line coverage (90% minimum)
+    make security   # cargo-audit, cargo-deny, SBOM
     make package    # release files: program, PWA, SBOM, licences, SHA256SUMS
-    make release    # version and CHANGELOG.md from the commit messages
+    make release    # version and CHANGELOG.md from the commit messages, when they call for it
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) and decide the
 version and the changelog. The CI in `.gitea/workflows/` checks every push, publishes each build

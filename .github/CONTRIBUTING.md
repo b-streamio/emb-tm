@@ -17,7 +17,7 @@ requests go there; the copies on Codeberg and GitHub are backup mirrors.
 2. Fork, branch from `main`, and keep each pull request to one topic.
 3. Add tests: new behaviour gets a test, a bug fix a test that failed before. Unit tests live in
    `tests/unit/` at the same path as the source file; command-line tests in `tests/cli.rs`.
-4. Run what the pipeline runs: `make lint test coverage security` (no warnings, coverage at least
+4. Run what the pipeline runs: `make check security` (no warnings, coverage at least
    90%, licences and advisories clean).
 5. Commit with a sign-off and a Conventional Commits message (below), then open the pull request
    against `main`. A maintainer reviews it; one approval and a green pipeline merge it.
@@ -47,7 +47,7 @@ version by hand.
 
 Sign off every commit (`git commit -s`) to certify the
 [Developer Certificate of Origin](https://developercertificate.org/): you wrote the change or may
-submit it under GPL-2.0-only. The pipeline checks both (`make commit-check`).
+submit it under GPL-2.0-only. The pipeline checks both (`make check`).
 
 ## Licence and copyright
 

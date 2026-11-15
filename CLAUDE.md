@@ -31,7 +31,7 @@ natively the `emb-tm` command line, the Yocto scanner and `emb-tm app`
   plus one file per part). Files stay under ~300 lines, functions under ~60
   (break long ones into named steps, long components into child components).
 - Work in the devcontainer (`.devcontainer/`); use the make targets.
-- Run `make test` (and `make lint`) between changes; no regressions.
+- Run `make check` (or `cargo test` once `data/stix` is downloaded) between changes; no regressions.
 - Never `git commit` unless the user asks. Commit messages are Conventional
   Commits and signed off (`git commit -s`): they decide the next version and
   `CHANGELOG.md` (git-cliff, `.config/cliff.toml`), so neither is edited by hand.
@@ -66,14 +66,15 @@ web/           the app shell, copied to the top of dist/: index.html (the page
                sw.js (service worker: precache at install, network first, cache
                offline), manifest, icons, emb-tm.desktop (menu entry,
                `make install` → ~/.local)
-.config/       tool settings: deny.toml, cliff.toml, about.toml + about.hbs
+.config/       tool settings: deny.toml, cliff.toml, about.toml + about.hbs,
+               Containerfile (the build environment: CI and `make image`)
 .github/       CONTRIBUTING, SECURITY (CRA steward policy), CODE_OF_CONDUCT,
                templates
 .gitea/        workflows: ci (checks, packages, release on main), emb3d-update
 Makefile       the build: cargo → wasm-bindgen → wasm-opt → dist/
 ```
 `stix`, `model`, `engine`, `ops` have no browser API and are unit-tested
-natively against the real STIX files (`make data` downloads them) and examples. Tests pin the numbers
+natively against the real STIX files (`make check` downloads them) and examples. Tests pin the numbers
 (surveillance and alarm system example 208 threats, 413 countermeasures;
 alarm hub Yocto example 98 threats, 166 countermeasures; regenerate the
 latter with `emb-tm scan` after changing the rules or the fixture). JSON goes through `serde_json::Value` only
@@ -84,21 +85,23 @@ Threat counts come from the `Ctx::counts` memo, not per view; wasm builds use
 Keep these current and don't let them grow without reason.
 
 ## Make targets
-`make build` (release → `dist/`), `make bin` (`target/release/emb-tm`
-with `dist/` embedded, feature `pwa`), `make app` (`emb-tm app`:
-serves the embedded app on 127.0.0.1:8000 and opens it in its own window),
-`make serve` (same, `--no-open`; installable), `make install` /
-`make uninstall` (binary, icon, `web/emb-tm.desktop` into `PREFIX`, default
-`~/.local`), `make data` (EMB3D releases from MITRE into `data/stix`), `make tools` (every pinned tool into `target/tools`, each on
-first use), `make test` (cargo: unit + CLI tests), `make lint`,
-`make coverage` (cargo-llvm-cov, fails under `COVERAGE_MIN`), `make security`
-(cargo-audit, cargo-deny), `make sbom` (CycloneDX), `make package` (release
-files, SHA256SUMS, third-party licences), `make commit-check`,
-`make release` (version + CHANGELOG.md + commit + tag from the commits),
-`make release-due`, `make release-check TAG=vX.Y.Z`, `make publish` (CI:
-packages and release on the forge). The workflows (`.gitea/workflows/`,
+`make build` (`dist/` and the static program `target/<arch>-unknown-linux-musl/release/emb-tm`
+with `dist/` embedded, feature `pwa`), `make app` (`emb-tm app`: serves the
+embedded app on 127.0.0.1:8000 and opens it in its own window; `ARGS=--no-open`
+only serves), `make install` / `make uninstall` (binary, icon,
+`web/emb-tm.desktop` into `PREFIX`, default `~/.local`), `make check`
+(commit messages since `BASE`, rustfmt, clippy, unit + CLI tests with line
+coverage, fails under `COVERAGE_MIN`; downloads the EMB3D releases into
+`data/stix` first), `make security` (cargo-audit, cargo-deny, CycloneDX SBOM),
+`make package` (AppImage, static program, PWA, SBOM, SHA256SUMS, third-party
+licences), `make image` (the build environment of `.config/Containerfile`, every
+pinned tool in `/opt/emb-tm/tools`; the CI builds it once per change and runs
+its jobs in it), `make release`
+(version + CHANGELOG.md + commit + tag, when the commits call for it),
+`make publish` (CI: packages and release on the forge). Outside the image,
+pinned tools install into `target/tools` on first use (`T`). The workflows (`.gitea/workflows/`,
 git.b-stream.io's Gitea Actions, runner label `container`, pinned images, no
-JavaScript actions, the job token checks out with Basic auth as in lp-boot)
+JavaScript actions, the job token checks out with Basic auth)
 only call these targets; the mirrors don't run them. The program is
 standalone: `library/`, `data/stix/index.json` and `web/style.css` are built
 in (`include_str!`), `emb-tm fetch` downloads to `$EMB_TM_DATA`
@@ -118,7 +121,7 @@ in (`include_str!`), `emb-tm fetch` downloads to `$EMB_TM_DATA`
   (`web::data_json`), `emb-tm fetch` with curl, checked with `sha2`. Examples
   and reports quote EMB3D text: keep MITRE's designation (`data/stix/README.md`).
 - `dist/` ships `emb-tm_bg.wasm.gz`: `make build` gzips it and the loader in
-  `web/index.html` inflates it (`DecompressionStream`). `make serve` does not watch files:
+  `web/index.html` inflates it (`DecompressionStream`). `make app` does not watch files:
   run it again after a change (it rebuilds the binary with the new `dist/`).
 - wasm-bindgen must match `Cargo.lock`; the Makefile reads the version from
   it. Never install build tools system-wide (other projects pin their own).

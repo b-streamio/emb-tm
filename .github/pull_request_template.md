@@ -10,7 +10,7 @@
 
 ## Checklist
 
-- [ ] `make lint test coverage security` passes
+- [ ] `make check security` passes
 - [ ] Tests cover the change (new behaviour, or the bug being fixed)
 - [ ] Commit messages follow Conventional Commits (`feat: …`, `fix: …`): they become the changelog
 - [ ] Commits are signed off (`git commit -s`)
