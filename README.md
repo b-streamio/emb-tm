@@ -1,4 +1,4 @@
-# EMB3D Workbench
+# emb-tm
 
 Threat modeling for embedded devices, built on [MITRE EMB3D](https://emb3d.mitre.org/).
 Describe a device as blocks (SoC, flash, bootloader, OS, services…), answer a few questions per
@@ -10,7 +10,7 @@ A command line does the same in CI and makes a first model from a Yocto image an
 
 EMB3D links threats to what a device is made of, but it is published as web pages and data, not
 as a tool you can apply to your own design. General threat modeling tools think in IT systems, and
-commercial platforms want your unreleased designs in their cloud. The Workbench fills that gap:
+commercial platforms want your unreleased designs in their cloud. emb-tm fills that gap:
 describe the device, and the threats follow, with the reasoning shown.
 
 - **Free and open source, for good**: GPL-2.0-only ([LICENSE](LICENSE)), no contributor
@@ -32,11 +32,11 @@ Corporation; this project is not affiliated with or endorsed by MITRE.
 
 **Desktop app**: one program carries the whole app and serves it on this computer only.
 
-    emb3d-wb app               # opens the app in its own window (Chromium, Chrome or Edge)
-    emb3d-wb app --port 8417   # another port if 8000 is taken; --no-open only serves
+    emb-tm app               # opens the app in its own window (Chromium, Chrome or Edge)
+    emb-tm app --port 8417   # another port if 8000 is taken; --no-open only serves
 
-In the window, **Install EMB3D Workbench** adds it to the system's app menu; it then works offline,
-even when `emb3d-wb app` is not running. Keep the same port: the saved project belongs to it.
+In the window, **Install emb-tm** adds it to the system's app menu; it then works offline,
+even when `emb-tm app` is not running. Keep the same port: the saved project belongs to it.
 On Linux, `make install` installs the program and a menu entry into `~/.local`.
 
 **In a browser**: host `dist/` (from `make build`) on any static web server and choose
@@ -44,11 +44,11 @@ On Linux, `make install` installs the program and a menu entry into `~/.local`.
 
 **Command line**:
 
-    emb3d-wb validate project.json                           # errors, unanswered questions
-    emb3d-wb analyze project.json --tmbom out.json --report out.html [--pdf out.pdf]
-    emb3d-wb analyze project.json --fail-on-open 0           # CI gate: exit 2 if threats are open
-    emb3d-wb scan --deploy tmp/deploy/images/<machine> -o project.json   # first model of a Yocto image
-    emb3d-wb --help                                          # every command and option
+    emb-tm validate project.json                           # errors, unanswered questions
+    emb-tm analyze project.json --tmbom out.json --report out.html [--pdf out.pdf]
+    emb-tm analyze project.json --fail-on-open 0           # CI gate: exit 2 if threats are open
+    emb-tm scan --deploy tmp/deploy/images/<machine> -o project.json   # first model of a Yocto image
+    emb-tm --help                                          # every command and option
 
 ## How it works
 
@@ -68,7 +68,7 @@ units, and boxes can share a design. Copy, cut and paste work across pages and p
 **Import blocks…** from another project, a TM-BOM or a component library file, so a team can
 share its components.
 
-**Yocto scan**: `emb3d-wb scan` reads a deploy directory (build variables, package manifest,
+**Yocto scan**: `emb-tm scan` reads a deploy directory (build variables, package manifest,
 rootfs, CycloneDX SBOMs, optional kernel and bootloader `.config`) and writes a project where every
 answer carries its evidence (`file:line`), each package its open vulnerabilities, and anything it
 could not decide is flagged for review. Rules: [library/README.md](library/README.md).
@@ -89,7 +89,7 @@ Use the devcontainer (`.devcontainer/`). The first build installs its pinned too
 `target/tools/`, nothing system-wide.
 
     make build      # the PWA → dist/
-    make bin        # target/release/emb3d-wb with the app inside
+    make bin        # target/release/emb-tm with the app inside
     make app        # make bin, then open the app (make serve: without a window)
     make test       # unit tests (tests/unit/) and command-line tests (tests/cli.rs)
     make lint       # rustfmt and clippy, warnings are errors

@@ -11,4 +11,4 @@ labels: ["bug"]
 
 **How to reproduce it** (steps, and if you can a small project or scanner input file)
 
-**Version and environment** (`emb3d-wb --version` or release, browser, operating system)
+**Version and environment** (`emb-tm --version` or release, browser, operating system)

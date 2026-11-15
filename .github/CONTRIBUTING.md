@@ -10,7 +10,7 @@ in `examples/index.json` and `FILES` in the `Makefile`).
 
 ## Pull requests
 
-The project lives on Codeberg: <https://codeberg.org/anischali/emb3d-tm>.
+The project lives on Codeberg: <https://codeberg.org/anischali/emb-tm>.
 
 1. For more than a small fix, open an issue first to agree on the approach.
 2. Fork, branch from `main`, and keep each pull request to one topic.
@@ -50,7 +50,7 @@ submit it under GPL-2.0-only. The pipeline checks both (`make commit-check`).
 
 ## Licence and copyright
 
-EMB3D Workbench is free software under the GNU General Public License, version 2 only, and stays
+emb-tm is free software under the GNU General Public License, version 2 only, and stays
 so. Anyone may use, study, change and share it; whoever passes it on, changed or not, in a product
 or otherwise, must pass on the source and the same freedoms (GPL-2.0, sections 1 to 3). Nobody may
 turn it, or a version of it, into closed software, and nobody may stop anyone from sharing it at

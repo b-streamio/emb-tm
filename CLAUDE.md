@@ -1,8 +1,8 @@
 # CLAUDE.md
 
-EMB3D Workbench: embedded-device threat modeling on MITRE EMB3D. One Rust
+emb-tm: embedded-device threat modeling on MITRE EMB3D. One Rust
 crate: on wasm32 the browser app, a Leptos (CSR) **offline PWA**;
-natively the `emb3d-wb` command line, the Yocto scanner and `emb3d-wb app`
+natively the `emb-tm` command line, the Yocto scanner and `emb-tm app`
 (serves the embedded PWA on 127.0.0.1 and opens it as a desktop app).
 
 ## Project practices (ordered, the first always wins)
@@ -54,7 +54,7 @@ src/cli/       command line: mod.rs (usage, args), library, analyze, scan,
                report (HTML, PDF), Yocto scanner (yocto/: parse, rootfs, rules,
                project, deploy; regex) and the app server (app.rs: embedded
                files only, loopback), native only
-build.rs       feature `pwa`: embeds dist/ for `emb3d-wb app`
+build.rs       feature `pwa`: embeds dist/ for `emb-tm app`
 src/main.rs    wasm32 → ui::start, otherwise → cli::main
 tests/unit/    unit tests, one file per source file at the same path
                (src/engine/tmbom.rs → tests/unit/engine/tmbom.rs), included as its
@@ -64,7 +64,7 @@ examples/index.json  templates offered by New (first one opens on a first visit)
 web/           the app shell, copied to the top of dist/: index.html (the page
                that ships; `make build` fills in the style.css SRI), style.css,
                sw.js (service worker: precache at install, network first, cache
-               offline), manifest, icons, emb3d-wb.desktop (menu entry,
+               offline), manifest, icons, emb-tm.desktop (menu entry,
                `make install` → ~/.local)
 .config/       tool settings: deny.toml, cliff.toml, about.toml + about.hbs
 .github/       CONTRIBUTING, SECURITY (CRA steward policy), CODE_OF_CONDUCT,
@@ -75,19 +75,19 @@ Makefile       the build: cargo → wasm-bindgen → wasm-opt → dist/
 natively against the real STIX files and examples. Tests pin the numbers
 (surveillance and alarm system example 208 threats, 413 countermeasures;
 alarm hub Yocto example 98 threats, 166 countermeasures; regenerate the
-latter with `emb3d-wb scan` after changing the rules or the fixture). JSON goes through `serde_json::Value` only
+latter with `emb-tm scan` after changing the rules or the fixture). JSON goes through `serde_json::Value` only
 (`Project::to_json`, `from_value`): one serde instantiation per type.
 Threat counts come from the `Ctx::counts` memo, not per view; wasm builds use
 `--cfg erase_components` (`.cargo/config.toml`). Size, `make build`
-(2026-10-31): wasm 965,725 bytes, 377,006 gzip as shipped; `dist/` 854 KB.
+(2026-11-15): wasm 967,888 bytes, 377,678 gzip as shipped; `dist/` 924 KB.
 Keep these current and don't let them grow without reason.
 
 ## Make targets
-`make build` (release → `dist/`), `make bin` (`target/release/emb3d-wb`
-with `dist/` embedded, feature `pwa`), `make app` (`emb3d-wb app`:
+`make build` (release → `dist/`), `make bin` (`target/release/emb-tm`
+with `dist/` embedded, feature `pwa`), `make app` (`emb-tm app`:
 serves the embedded app on 127.0.0.1:8000 and opens it in its own window),
 `make serve` (same, `--no-open`; installable), `make install` /
-`make uninstall` (binary, icon, `web/emb3d-wb.desktop` into `PREFIX`, default
+`make uninstall` (binary, icon, `web/emb-tm.desktop` into `PREFIX`, default
 `~/.local`), `make tools` (every pinned tool into `target/tools`, each on
 first use), `make test` (cargo: unit + CLI tests), `make lint`,
 `make coverage` (cargo-llvm-cov, fails under `COVERAGE_MIN`), `make security`
@@ -106,7 +106,7 @@ plain containers) only call these targets.
   app fetches must be added to `WEB` or `FILES` in the Makefile **and** to
   `SHELL` in `web/sw.js`, or it breaks offline (STIX releases and examples are cached from
   their `index.json`).
-- `dist/` ships `emb3d-wb_bg.wasm.gz` and `data/stix/*.json.gz`: `make build`
+- `dist/` ships `emb-tm_bg.wasm.gz` and `data/stix/*.json.gz`: `make build`
   gzips them and the loader in `web/index.html` / `web::fetch_gzip_json`
   inflate them (`DecompressionStream`). `make serve` does not watch files:
   run it again after a change (it rebuilds the binary with the new `dist/`).
@@ -118,6 +118,8 @@ plain containers) only call these targets.
   `https://emb3d.mitre.org` (Updates button only).
 - `localStorage` key `emb3d-workbench/project` and the project / TM-BOM JSON
   formats are shared with the CLI and earlier versions: don't change them.
+  They, the TM-BOM extension key, the clipboard key and the service worker
+  cache keep the pre-rename name (EMB3D Workbench) on purpose.
 - Scanner rules (`library/yocto-rules.json`) are Rust `regex`: no look-around.
 
 ## Host toolchain quirk
