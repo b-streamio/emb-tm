@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# The emb-tm build environment: Rust with its wasm32 and musl targets and
+# every pinned tool of the Makefile, the AppImage ones included, in
+# /opt/emb-tm/tools. `make image` builds it locally; the CI builds it once
+# per change (tag: hash of this file and the Makefile) and runs its jobs in it.
+#
+#   make image && podman run --rm -v "$PWD:/w:Z" -w /w emb-tm-build:<tag> make package
+FROM docker.io/library/rust:1.99.1-trixie
+
+RUN apt-get update -qq \
+ && apt-get install -y -qq --no-install-recommends python3 file \
+ && rm -rf /var/lib/apt/lists/*
+RUN rustup component add rustfmt clippy llvm-tools-preview \
+ && rustup target add wasm32-unknown-unknown x86_64-unknown-linux-musl
+
+ENV T=/opt/emb-tm/tools
+COPY Makefile Cargo.toml Cargo.lock /tmp/emb-tm/
+COPY data/stix/index.json /tmp/emb-tm/data/stix/
+RUN make -C /tmp/emb-tm tools \
+ && rm -rf /tmp/emb-tm "$CARGO_HOME/registry" "$CARGO_HOME/git"
