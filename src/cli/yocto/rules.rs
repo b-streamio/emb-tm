@@ -53,6 +53,23 @@ pub(super) struct Found {
 }
 
 /// `/etc/*.conf` → `^/etc/[^/]*\.conf$`.
+/// Every rootfs file a rule may read (its `file` patterns).
+pub(super) fn file_globs(rules: &Value) -> Result<Vec<Regex>, String> {
+    fn collect<'a>(v: &'a Value, out: &mut Vec<&'a str>) {
+        match v {
+            Value::Object(m) => {
+                out.extend(m.get("file").and_then(Value::as_str));
+                m.values().for_each(|x| collect(x, out));
+            }
+            Value::Array(a) => a.iter().for_each(|x| collect(x, out)),
+            _ => {}
+        }
+    }
+    let mut pats = Vec::new();
+    collect(rules, &mut pats);
+    pats.iter().flat_map(|p| p.split('|')).map(glob).collect()
+}
+
 fn glob(g: &str) -> Result<Regex, String> {
     let parts: Vec<String> = g.split('*').map(regex::escape).collect();
     regex(&format!("^{}$", parts.join("[^/]*")))

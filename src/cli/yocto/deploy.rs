@@ -54,7 +54,13 @@ pub fn from_deploy_dir(dir: &Path, image: Option<&str>) -> Result<Inputs, String
     Ok(Inputs {
         manifest: pick(r"\.manifest$"),
         testdata: pick(r"\.testdata\.json$"),
-        rootfs: pick(r"\.tar(\.(gz|bz2|xz|zst))?$"),
+        // (the fastest to decompress first: the scan reads it twice)
+        rootfs: ["zst", "gz", "", "xz", "bz2"].iter().find_map(|z| {
+            pick(&format!(
+                r"\.tar{}{z}$",
+                if z.is_empty() { "" } else { r"\." }
+            ))
+        }),
         sboms: files
             .iter()
             .filter(|f| sbom.is_match(f) && (ours(f) || !rootfs_of_other.is_match(f)))
@@ -64,3 +70,7 @@ pub fn from_deploy_dir(dir: &Path, image: Option<&str>) -> Result<Inputs, String
         ..Default::default()
     })
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/cli/yocto/deploy.rs"]
+mod tests;

@@ -76,14 +76,14 @@ pub fn scan(
     today: &str,
 ) -> Result<(Project, Notes), String> {
     let mut notes = Notes::default();
-    let f = read_inputs(inputs, &mut notes)?;
+    let f = read_inputs(inputs, rules, &mut notes)?;
     let (nodes, by_rule) = project::components(&f, rules, lib, &mut notes)?;
     let flows = project::flows(rules, &nodes, &by_rule);
     let p = project::project(&f, inputs, &mut notes, (nodes, flows), today);
     Ok((p, notes))
 }
 
-fn read_inputs(inputs: &Inputs, notes: &mut Notes) -> Result<Found, String> {
+fn read_inputs(inputs: &Inputs, rules: &Value, notes: &mut Notes) -> Result<Found, String> {
     let mut f = Found::default();
     let path = |p: &Path| p.display().to_string();
     if let Some(p) = &inputs.testdata {
@@ -115,7 +115,7 @@ fn read_inputs(inputs: &Inputs, notes: &mut Notes) -> Result<Found, String> {
         notes.used.push(base(p));
     }
     if let Some(p) = &inputs.rootfs {
-        let r = Rootfs::open(p)?;
+        let r = Rootfs::open(p, &rules::file_globs(rules)?)?;
         notes.used.push(r.label.clone());
         f.rootfs = Some(r);
     }
