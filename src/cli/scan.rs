@@ -5,9 +5,9 @@ use std::path::Path;
 
 use super::{
     analyze::outputs,
-    load_library, pretty, read_json, release_for, root, today, write,
+    built_in, load_library, pretty, read_json, release_for, today, write,
     yocto::{from_deploy_dir, scan, Inputs},
-    Args,
+    Args, RULES,
 };
 use crate::engine::Model;
 
@@ -18,7 +18,7 @@ pub(super) fn scan_cmd(a: &Args) -> Result<i32, String> {
     let inputs = inputs(a)?;
     let rules = match a.get("rules") {
         Some(f) => read_json(Path::new(f))?,
-        None => read_json(&root().join("library/yocto-rules.json"))?,
+        None => built_in("library/yocto-rules.json", RULES)?,
     };
     let lib = load_library()?;
     let (mut p, notes) = scan(&inputs, &rules, &lib, &today()).map_err(|e| format!("scan: {e}"))?;

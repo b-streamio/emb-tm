@@ -1,23 +1,26 @@
 // SPDX-License-Identifier: GPL-2.0-only
-//! `fetch`: downloads the EMB3D releases listed in data/stix/index.json from
-//! emb3d.mitre.org, under MITRE's terms of use; emb-tm ships none. The system's
+//! `fetch`: downloads the EMB3D releases of the built-in index
+//! (data/stix/index.json) from emb3d.mitre.org into [`stix_dir`], under
+//! MITRE's terms of use; emb-tm ships none. The system's
 //! curl downloads; a file must match the SHA-256 the index pins, when it is
 //! downloaded and each time it is read.
 
-use std::{fs, path::PathBuf, process::Command};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
-use super::{index, plain, root, Args};
+use super::{index, plain, stix_dir, Args};
 
 const TERMS: &str = "https://emb3d.mitre.org/subtabs/terms-of-use.html";
 
-/// `data/stix/<file>` of a release of the index.
-fn path(meta: &Value) -> PathBuf {
-    root()
-        .join("data/stix")
-        .join(meta["file"].as_str().unwrap_or_default())
+/// The file of a release of the index, in `dir`.
+fn path(dir: &Path, meta: &Value) -> PathBuf {
+    dir.join(meta["file"].as_str().unwrap_or_default())
 }
 
 /// Whether `bytes` hash to the hex SHA-256 `want`.
@@ -31,7 +34,11 @@ fn matches(bytes: &[u8], want: &Value) -> bool {
 
 /// The file of release `meta`, checked against its pinned SHA-256.
 pub(super) fn read_release(meta: &Value) -> Result<Vec<u8>, String> {
-    let file = path(meta);
+    read_in(&stix_dir(), meta)
+}
+
+fn read_in(dir: &Path, meta: &Value) -> Result<Vec<u8>, String> {
+    let file = path(dir, meta);
     let bytes = fs::read(&file).map_err(|_| {
         format!(
             "EMB3D {} is not downloaded yet: run \"emb-tm fetch\" (from emb3d.mitre.org, under MITRE's terms of use).",
@@ -40,7 +47,7 @@ pub(super) fn read_release(meta: &Value) -> Result<Vec<u8>, String> {
     })?;
     if !matches(&bytes, &meta["sha256"]) {
         return Err(format!(
-            "{}: does not match its SHA-256 in data/stix/index.json; run \"emb-tm fetch\" again.",
+            "{}: does not match its pinned SHA-256; run \"emb-tm fetch\" again.",
             file.display()
         ));
     }
@@ -78,10 +85,12 @@ pub(super) fn fetch(a: &Args) -> Result<i32, String> {
 
 /// Downloads release `meta` with curl (HTTPS only), keeps it when it matches.
 fn download(meta: &Value) -> Result<(), String> {
-    let (file, url) = (path(meta), meta["source"].as_str().unwrap_or_default());
+    let (dir, url) = (stix_dir(), meta["source"].as_str().unwrap_or_default());
     if !url.starts_with("https://emb3d.mitre.org/") {
         return Err(format!("{url}: not an emb3d.mitre.org address"));
     }
+    fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+    let file = path(&dir, meta);
     let part = file.with_extension("part");
     let ok = Command::new("curl")
         .args([

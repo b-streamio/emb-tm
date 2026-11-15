@@ -45,7 +45,7 @@ emb-tm command line. Same engine as the browser app.
       --testdata <file>      <image>.testdata.json            --bbenv <file>     `bitbake -e <image>` output
       --manifest <file>      <image>.manifest                 --rootfs <tar|dir> image rootfs
       --sbom <file>          CycloneDX JSON, repeatable       --kernel-config <file>  --uboot-config <file>
-      --rules <file>         scanner rules (default library/yocto-rules.json)
+      --rules <file>         scanner rules (default: the built-in ones)
   emb-tm analyze  <project.json> [options]
       --emb3d <ver>          EMB3D version (default: the project's, else data/stix default)
       --tmbom <file>         write the TM-BOM (OWASP Threat Model Library schema v1.0.2)
@@ -57,7 +57,8 @@ emb-tm command line. Same engine as the browser app.
       --fulltext             full MITRE threat descriptions in the report
       --fail-on-open <n>     exit 2 when more than n threats are open (CI gate)
 
-Data (library/, data/stix/, web/style.css) is read from $EMB_TM_ROOT, by default the source tree.
+The component library, scanner rules and report style are built in. EMB3D releases are downloaded
+to $EMB_TM_DATA, by default ~/.local/share/emb-tm/stix.
 MITRE EMB3D(TM) data (c) The MITRE Corporation, under its terms of use (data/stix/README.md); this
 program is not affiliated with or endorsed by MITRE.
 ";
@@ -143,9 +144,30 @@ pub fn main(argv: Vec<String>) -> i32 {
     })
 }
 
-fn root() -> PathBuf {
-    std::env::var_os("EMB_TM_ROOT")
-        .map_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")), PathBuf::from)
+/// Built into the program, so that it runs on its own.
+const COMPONENTS: &str = include_str!("../../library/components.json");
+const RULES: &str = include_str!("../../library/yocto-rules.json");
+const INDEX: &str = include_str!("../../data/stix/index.json");
+const STYLE: &str = include_str!("../../web/style.css");
+
+fn built_in(name: &str, text: &str) -> Result<Value, String> {
+    serde_json::from_str(text).map_err(|e| format!("{name}: {e}"))
+}
+
+/// Where `fetch` keeps the EMB3D releases: $EMB_TM_DATA, else
+/// $XDG_DATA_HOME/emb-tm/stix, else ~/.local/share/emb-tm/stix.
+fn stix_dir() -> PathBuf {
+    let var = |k| {
+        std::env::var_os(k)
+            .filter(|v| !v.is_empty())
+            .map(PathBuf::from)
+    };
+    var("EMB_TM_DATA").unwrap_or_else(|| {
+        var("XDG_DATA_HOME")
+            .or_else(|| var("HOME").map(|h| h.join(".local/share")))
+            .unwrap_or_default()
+            .join("emb-tm/stix")
+    })
 }
 
 fn read(path: &Path) -> Result<String, String> {
@@ -165,12 +187,12 @@ fn pretty(v: &Value) -> String {
 }
 
 fn load_library() -> Result<Library, String> {
-    serde_json::from_value(read_json(&root().join("library/components.json"))?)
+    serde_json::from_value(built_in("library/components.json", COMPONENTS)?)
         .map_err(|e| format!("library/components.json: {e}"))
 }
 
 fn index() -> Result<Value, String> {
-    read_json(&root().join("data/stix/index.json"))
+    built_in("data/stix/index.json", INDEX)
 }
 
 fn load_emb3d(version: &str) -> Result<Emb3d, String> {

@@ -15,12 +15,11 @@ fn hash_must_match() {
 
 #[test]
 fn missing_or_foreign_release_is_refused() {
+    let dir = Path::new("data/stix");
     let missing = json!({"version": "0.1", "file": "emb3d-stix-0.1.json", "sha256": ""});
-    assert!(read_release(&missing)
-        .unwrap_err()
-        .contains("emb-tm fetch"));
+    assert!(read_in(dir, &missing).unwrap_err().contains("emb-tm fetch"));
     let tampered = json!({"version": "0.1", "file": "index.json", "sha256": "00"});
-    assert!(read_release(&tampered)
+    assert!(read_in(dir, &tampered)
         .unwrap_err()
         .contains("does not match"));
     let elsewhere = json!({"file": "x.json", "source": "https://example.org/x.json"});

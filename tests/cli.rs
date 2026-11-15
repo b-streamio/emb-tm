@@ -15,9 +15,14 @@ fn tmp(name: &str) -> PathBuf {
     d
 }
 
-/// Runs `emb-tm args…`; returns `(exit code, stdout)`.
+/// Runs `emb-tm args…` on the EMB3D releases of data/stix (`make data`);
+/// returns `(exit code, stdout)`.
 fn run(args: &[&str]) -> (i32, String) {
     let out = Command::new(env!("CARGO_BIN_EXE_emb-tm"))
+        .env(
+            "EMB_TM_DATA",
+            concat!(env!("CARGO_MANIFEST_DIR"), "/data/stix"),
+        )
         .args(args)
         .output()
         .unwrap();

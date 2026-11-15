@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-only
 //! `library` and `versions`: what a project can use.
 
-use super::{index, load_library, plain, pretty, read_json, read_release, root, Args};
+use super::{built_in, index, load_library, plain, pretty, read_release, Args, COMPONENTS};
 
 pub(super) fn library(a: &Args) -> Result<i32, String> {
     if a.has("json") {
         print!(
             "{}",
-            pretty(&read_json(&root().join("library/components.json"))?)
+            pretty(&built_in("library/components.json", COMPONENTS)?)
         );
         return Ok(0);
     }

@@ -6,7 +6,7 @@ use std::{
     process::{Command, Stdio},
 };
 
-use super::{read, root, today, Args};
+use super::{today, Args, STYLE};
 use crate::{
     engine::{esc, Model, ReportOpts},
     model::Project,
@@ -14,8 +14,7 @@ use crate::{
 
 /// A report that opens anywhere: the app's report styles inlined, no web fonts.
 pub(super) fn standalone_html(p: &Project, m: &Model, o: ReportOpts) -> Result<String, String> {
-    let css = read(&root().join("web/style.css"))?;
-    let block = css
+    let block = STYLE
         .split_once("/* report-css:begin")
         .and_then(|(_, rest)| rest.split_once("*/"))
         .and_then(|(_, rest)| rest.split_once("/* report-css:end */"))

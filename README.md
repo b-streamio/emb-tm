@@ -31,7 +31,8 @@ Corporation; this project is not affiliated with or endorsed by MITRE.
 
 ## Use it
 
-**Desktop app**: one program carries the whole app and serves it on this computer only.
+**Desktop app**: one standalone program (the release archive) carries the whole app and serves it
+on this computer only.
 
     emb-tm app               # opens the app in its own window (Chromium, Chrome or Edge)
     emb-tm app --port 8417   # another port if 8000 is taken; --no-open only serves
@@ -45,6 +46,7 @@ On Linux, `make install` installs the program and a menu entry into `~/.local`.
 
 **Command line**:
 
+    emb-tm fetch                                           # EMB3D data from emb3d.mitre.org, once
     emb-tm validate project.json                           # errors, unanswered questions
     emb-tm analyze project.json --tmbom out.json --report out.html [--pdf out.pdf]
     emb-tm analyze project.json --fail-on-open 0           # CI gate: exit 2 if threats are open
@@ -76,7 +78,8 @@ could not decide is flagged for review. Rules: [library/README.md](library/READM
 
 **EMB3D data**: emb-tm does not ship MITRE's EMB3D files. On first start the app asks to download
 the release from emb3d.mitre.org, checks it against the SHA-256 that `data/stix/index.json` pins
-and keeps it for offline use; on the command line, `emb-tm fetch` does the same. Each project
+and keeps it for offline use; on the command line, `emb-tm fetch` does the same (into
+`~/.local/share/emb-tm/stix`, or `$EMB_TM_DATA`). Each project
 records the EMB3D release it uses; switching shows what changes first. New releases are listed
 with `python3 tools/emb3d_update.py check` / `add <version>`.
 

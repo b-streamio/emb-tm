@@ -117,7 +117,7 @@ $(ABOUT):
 data: $(STIX) ## Download the EMB3D releases from emb3d.mitre.org into data/stix (checksums verified)
 
 $(STIX) &: data/stix/index.json
-	cargo run --quiet --locked -- fetch
+	EMB_TM_DATA=data/stix cargo run --quiet --locked -- fetch
 
 test: data ## Unit tests (tests/unit) and command-line tests (tests/cli.rs)
 	cargo test --locked
