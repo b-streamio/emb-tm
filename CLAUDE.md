@@ -68,7 +68,8 @@ web/           the app shell, copied to the top of dist/: index.html (the page
                `make install` → ~/.local)
 .config/       tool settings: deny.toml, cliff.toml, about.toml + about.hbs
 .github/       CONTRIBUTING, SECURITY (CRA steward policy), CODE_OF_CONDUCT,
-               templates, workflows
+               templates
+.gitea/        workflows: ci (checks, packages, release on main), emb3d-update
 Makefile       the build: cargo → wasm-bindgen → wasm-opt → dist/
 ```
 `stix`, `model`, `engine`, `ops` have no browser API and are unit-tested
@@ -94,9 +95,14 @@ first use), `make test` (cargo: unit + CLI tests), `make lint`,
 (cargo-audit, cargo-deny), `make sbom` (CycloneDX), `make package` (release
 files, SHA256SUMS, third-party licences), `make commit-check`,
 `make release` (version + CHANGELOG.md + commit + tag from the commits),
-`make release-check TAG=vX.Y.Z`. CI and the release workflow
-(`.github/workflows/`, Gitea and Forgejo Actions: no JavaScript actions,
-plain containers) only call these targets.
+`make release-due`, `make release-check TAG=vX.Y.Z`, `make publish` (CI:
+packages and release on the forge). The workflows (`.gitea/workflows/`,
+git.b-stream.io's Gitea Actions, runner label `container`, pinned images, no
+JavaScript actions, the job token checks out with Basic auth as in lp-boot)
+only call these targets; the mirrors don't run them. The program is
+standalone: `library/`, `data/stix/index.json` and `web/style.css` are built
+in (`include_str!`), `emb-tm fetch` downloads to `$EMB_TM_DATA`
+(default `~/.local/share/emb-tm/stix`).
 
 ## Constraints
 - Keep the root small: code in `src/`, the shell in `web/`, tool settings in

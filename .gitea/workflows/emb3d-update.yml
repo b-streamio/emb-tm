@@ -12,15 +12,17 @@ on:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
-    container: docker.io/library/python:3-slim
+    runs-on: container
+    container: docker.io/library/python:3.14-slim-trixie
     steps:
-      - name: Check out
+      - name: Checkout
+        env:
+          TOKEN: ${{ github.token }}
         run: |
           apt-get update -qq && apt-get install -y -qq --no-install-recommends git ca-certificates
           git init -q .
-          git -c http.extraHeader="Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            fetch -q --depth 1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$GITHUB_REF"
+          git -c http.extraHeader="Authorization: Basic $(printf 'ci:%s' "$TOKEN" | base64 -w0)" \
+              fetch -q --depth 1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$GITHUB_SHA"
           git checkout -q FETCH_HEAD
       - name: Check emb3d.mitre.org
         run: |

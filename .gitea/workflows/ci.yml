@@ -1,0 +1,168 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# emb-tm CI on git.b-stream.io (Gitea Actions). Every job runs in its own
+# pinned image (runner label `container`) and only calls make targets, so a
+# job runs the same on a workstation:
+#
+#   commits   pull requests: Conventional Commits, signed off
+#   check     rustfmt, clippy (warnings are errors), unit and CLI tests,
+#             line coverage
+#   security  cargo-audit, cargo-deny, CycloneDX SBOM
+#   trivy     vulnerable dependencies, committed secrets, misconfigurations
+#   package   the release files (program, PWA, SBOM, licences, SHA256SUMS),
+#             published as emb-tm-dev/<branch>-<commit>
+#   release   on main, when everything passed and the Conventional Commits
+#             since the last tag call for it: version, CHANGELOG.md, tag, a
+#             Gitea release and the package emb-tm/vX.Y.Z
+#
+# The mirrors (Codeberg, GitHub) do not run it. Secrets, both optional:
+# PACKAGES_TOKEN when the job token may not write packages, RELEASE_TOKEN
+# when only a user may push the release commit to main.
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  commits:
+    if: github.event_name == 'pull_request'
+    runs-on: container
+    container: docker.io/library/rust:1.99.1-trixie
+    steps:
+      - name: Checkout the pull request and its base branch
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          git init -q .
+          git -c http.extraHeader="Authorization: Basic $(printf 'ci:%s' "$TOKEN" | base64 -w0)" \
+              fetch -q "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" \
+              "+refs/heads/$GITHUB_BASE_REF:refs/remotes/origin/$GITHUB_BASE_REF" "+$GITHUB_SHA:refs/pr"
+          git checkout -q refs/pr
+      - run: make commit-check BASE="origin/$GITHUB_BASE_REF"
+
+  check:
+    runs-on: container
+    container: docker.io/library/rust:1.99.1-trixie
+    steps:
+      - name: Checkout
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          git init -q .
+          git -c http.extraHeader="Authorization: Basic $(printf 'ci:%s' "$TOKEN" | base64 -w0)" \
+              fetch -q --depth 1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$GITHUB_SHA"
+          git checkout -q FETCH_HEAD
+      - name: Toolchain
+        run: |
+          rustup component add rustfmt clippy llvm-tools-preview
+          rustup target add wasm32-unknown-unknown
+      - run: make lint
+      - run: make test
+      - run: make coverage
+
+  security:
+    runs-on: container
+    container: docker.io/library/rust:1.99.1-trixie
+    steps:
+      - name: Checkout
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          git init -q .
+          git -c http.extraHeader="Authorization: Basic $(printf 'ci:%s' "$TOKEN" | base64 -w0)" \
+              fetch -q --depth 1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$GITHUB_SHA"
+          git checkout -q FETCH_HEAD
+      - run: make security
+      - run: make sbom
+
+  # Findings are in this job's log (Gitea has no code scanning view); HIGH
+  # and CRITICAL ones fail it.
+  trivy:
+    runs-on: container
+    container: docker.io/aquasec/trivy:0.76.2
+    steps:
+      - name: Checkout
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          apk add --no-cache git
+          git init -q .
+          git -c http.extraHeader="Authorization: Basic $(printf 'ci:%s' "$TOKEN" | base64 -w0)" \
+              fetch -q --depth 1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$GITHUB_SHA"
+          git checkout -q FETCH_HEAD
+      - run: >
+          trivy fs --scanners vuln,secret,misconfig --severity HIGH,CRITICAL
+          --ignore-unfixed --exit-code 1 --skip-dirs target --skip-dirs dist .
+
+  package:
+    runs-on: container
+    container: docker.io/library/rust:1.99.1-trixie
+    steps:
+      - name: Checkout
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          git init -q .
+          git -c http.extraHeader="Authorization: Basic $(printf 'ci:%s' "$TOKEN" | base64 -w0)" \
+              fetch -q --depth 1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$GITHUB_SHA"
+          git checkout -q FETCH_HEAD
+      - run: rustup target add wasm32-unknown-unknown
+      - run: make package
+      - run: target/release/emb-tm --version
+      - name: Publish
+        # (a pull request runs its own code: no secret)
+        if: github.event_name != 'pull_request'
+        env:
+          REPO_TOKEN: ${{ github.token }}
+          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+        run: TOKEN="${PACKAGES_TOKEN:-$REPO_TOKEN}" make publish
+
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [check, security, trivy, package]
+    runs-on: container
+    container: docker.io/library/rust:1.99.1-trixie
+    env:
+      REPO_TOKEN: ${{ github.token }}
+      RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+      PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+    steps:
+      # (the history and the tags: the version comes from the commits since
+      # the last tag)
+      - name: Checkout
+        run: |
+          git init -q .
+          git config http.extraHeader \
+              "Authorization: Basic $(printf 'ci:%s' "${RELEASE_TOKEN:-$REPO_TOKEN}" | base64 -w0)"
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          git fetch -q --tags origin "$GITHUB_SHA"
+          git checkout -q -B main FETCH_HEAD
+      - name: Toolchain
+        run: |
+          rustup target add wasm32-unknown-unknown
+          apt-get update -qq && apt-get install -y -qq --no-install-recommends python3
+      - name: Version from the commits
+        id: version
+        run: |
+          git config user.name emb-tm-ci
+          git config user.email "ci@${GITHUB_SERVER_URL#*://}"
+          tag=$(git tag --points-at HEAD 'v*' | head -n 1)
+          if [ -z "$tag" ] && [ -n "$(make -s release-due)" ]; then
+            make release
+            tag=$(git describe --tags --exact-match)
+          fi
+          if [ -n "$tag" ]; then make release-check TAG="$tag"; else echo "Nothing to release."; fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - if: steps.version.outputs.tag != ''
+        run: make package
+      - name: Push the release commit and tag
+        if: steps.version.outputs.tag != ''
+        run: git push -q --atomic origin HEAD:refs/heads/main "refs/tags/${{ steps.version.outputs.tag }}"
+      - name: Publish
+        if: steps.version.outputs.tag != ''
+        run: TOKEN="${RELEASE_TOKEN:-${PACKAGES_TOKEN:-$REPO_TOKEN}}" make publish TAG="${{ steps.version.outputs.tag }}"

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 .DEFAULT_GOAL := help
 .PHONY: help build bin serve app install uninstall tools data test lint coverage security sbom package \
-	commit-check release release-check
+	publish commit-check release release-due release-check
 
 # Port of `make serve` and `make app`. An installed app loads from it, so
 # pick one no other local server uses.
@@ -165,17 +165,50 @@ commit-check: ## Commits in BASE..HEAD are Conventional Commits and signed off (
 	done; \
 	[ $$bad = 0 ] && echo "Commits since $(BASE) are fine."; exit $$bad
 
+# The release files go to the generic package registry of the forge the CI
+# runs on (Gitea API: GITHUB_SERVER_URL, GITHUB_REPOSITORY, TOKEN): with
+# TAG=vX.Y.Z into the package emb-tm, with a release of the tag; otherwise
+# into emb-tm-dev as <branch>-<commit>. Files already there are kept. TOKEN
+# reaches curl on its standard input, never as an argument.
+PUBLISH_AS = $(or $(TAG),$(subst /,-,$(GITHUB_REF_NAME))-$(shell git rev-parse --short=12 HEAD))
+ASSETS := *.tar.gz *.cdx.json THIRD-PARTY-LICENSES.txt SHA256SUMS
+
+publish: ## (CI) Upload target/release-files to the forge's packages; TAG=vX.Y.Z also makes the release
+	@: "$${TOKEN:?the token that writes packages}" "$${GITHUB_SERVER_URL:?}" "$${GITHUB_REPOSITORY:?}"
+	@set -e; auth() { printf 'header = "Authorization: token %s"\n' "$$TOKEN"; }; \
+	case '$(PUBLISH_AS)' in v[0-9]*) pkg=emb-tm ;; *) pkg=emb-tm-dev ;; esac; \
+	url="$${GITHUB_SERVER_URL%/}/api/packages/$${GITHUB_REPOSITORY%%/*}/generic/$$pkg/$(PUBLISH_AS)"; \
+	cd $(REL); for f in $(ASSETS); do \
+		code=$$(auth | curl -sS -K - -o /dev/null -w '%{http_code}' -X PUT --upload-file "$$f" "$$url/$$f"); \
+		case $$code in 201) echo "published $$pkg/$(PUBLISH_AS)/$$f" ;; 409) echo "already there: $$f" ;; \
+			*) echo "$$f: HTTP $$code" >&2; exit 1 ;; esac; \
+	done; \
+	[ -n '$(TAG)' ] || exit 0; \
+	api="$${GITHUB_SERVER_URL%/}/api/v1/repos/$$GITHUB_REPOSITORY/releases"; \
+	if auth | curl -fsS -K - -o /dev/null "$$api/tags/$(TAG)" 2>/dev/null; then \
+		echo "release $(TAG) already there"; exit 0; fi; \
+	python3 -c 'import json, sys; print(json.dumps({"tag_name": sys.argv[1], "name": "emb-tm " + sys.argv[1][1:], \
+		"body": open("NOTES.md").read(), "prerelease": "-" in sys.argv[1]}))' '$(TAG)' > release.json; \
+	id=$$(auth | curl -fsS -K - -H 'Content-Type: application/json' -X POST --data-binary @release.json "$$api" \
+		| python3 -c 'import json, sys; print(json.load(sys.stdin)["id"])'); \
+	for f in $(ASSETS); do \
+		auth | curl -fsS -K - -o /dev/null -F "attachment=@$$f" "$$api/$$id/assets?name=$$f"; echo "attached $$f"; \
+	done
+
+release-due: $(CLIFF) ## The next version (vX.Y.Z) when the commits since the last tag call for a release
+	@next=$$($(GIT_CLIFF) --bumped-version 2>/dev/null); \
+	[ "$$next" = "$$(git describe --tags --abbrev=0 2>/dev/null)" ] || echo "$$next"
+
 release: $(CLIFF) ## From the commits since the last tag: version, CHANGELOG.md, release commit and tag
 	@test -z "$$(git status --porcelain)" || { echo 'Commit or stash your changes first.'; exit 1; }
-	@next=$$($(GIT_CLIFF) --bumped-version 2>/dev/null); \
-	if [ "$$next" = "$$(git describe --tags --abbrev=0 2>/dev/null)" ]; then \
-		echo "No commit for the changelog since $$next: nothing to release."; exit 1; fi; \
+	@next=$$($(MAKE) -s --no-print-directory release-due); \
+	[ -n "$$next" ] || { echo "No commit for the changelog since the last tag: nothing to release."; exit 1; }; \
 	sed -i "0,/^version *=/s/^version *= *\"[^\"]*\"/version      = \"$${next#v}\"/" Cargo.toml; \
 	cargo update --workspace --offline --quiet; \
 	$(GIT_CLIFF) --tag "$$next" --output CHANGELOG.md 2>/dev/null; \
 	git commit -q -s -m "chore(release): $$next" Cargo.toml Cargo.lock CHANGELOG.md; \
 	git tag -a "$$next" -m "emb-tm $${next#v}"; \
-	echo "Released $$next locally. Publish it with: git push origin HEAD $$next, then run the release workflow."
+	echo "Released $$next locally. Publish it with: git push --atomic origin HEAD $$next"
 
 release-check: ## Check that TAG (vX.Y.Z) is SemVer and matches Cargo.toml and CHANGELOG.md
 	@echo '$(TAG)' | grep -Eq '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$$' \

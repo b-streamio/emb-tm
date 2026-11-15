@@ -68,7 +68,10 @@ answers for it and signs it off; the tool may be credited in a trailer
 
 ## Releases (maintainers)
 
-Run the **release** workflow on `main`. It computes the version from the commits since the last
-tag, writes `Cargo.toml` and `CHANGELOG.md`, runs every check, pushes the release commit and tag,
-and publishes the program, the PWA, the SBOM, the licences and `SHA256SUMS`. It needs a
-`RELEASE_TOKEN` secret (scopes `write:repository` and `write:package`, allowed to push to `main`).
+Releases are automatic. When a push to `main` passes every check and its commits since the last
+tag call for a release (`feat`, `fix` and the other changelog types), the CI computes the version,
+writes `Cargo.toml` and `CHANGELOG.md`, pushes the release commit and tag, and publishes the
+program, the PWA, the SBOM, the licences and `SHA256SUMS` as a release and as the package
+`emb-tm`. Every other build goes to the package `emb-tm-dev`. Optional secrets: `RELEASE_TOKEN`
+when only a maintainer may push to `main`, `PACKAGES_TOKEN` when the job token may not write
+packages.

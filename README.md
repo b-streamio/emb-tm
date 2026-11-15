@@ -106,7 +106,8 @@ Use the devcontainer (`.devcontainer/`). The first build installs its pinned too
     make release    # version and CHANGELOG.md from the commit messages
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) and decide the
-version and the changelog. The pipelines in `.github/workflows/` run on Gitea and Forgejo Actions.
+version and the changelog. The CI in `.gitea/workflows/` checks every push, publishes each build
+as a package, and on `main` releases by itself when the commits call for it.
 
 | Path | Contents |
 |---|---|
