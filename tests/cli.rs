@@ -15,7 +15,7 @@ fn tmp(name: &str) -> PathBuf {
     d
 }
 
-/// Runs `emb-tm args…` on the EMB3D releases of data/stix (`make data`);
+/// Runs `emb-tm args…` on the EMB3D releases of data/stix (`make check`);
 /// returns `(exit code, stdout)`.
 fn run(args: &[&str]) -> (i32, String) {
     let out = Command::new(env!("CARGO_BIN_EXE_emb-tm"))
@@ -300,4 +300,10 @@ fn app_needs_the_embedded_build() {
     let (code, out) = run(&["app", "--port", "x"]);
     assert_eq!(code, 1);
     assert!(out.contains("not a port number"), "{out}");
+    // Started from an AppImage without a command: the app, not the usage.
+    let out = Command::new(env!("CARGO_BIN_EXE_emb-tm"))
+        .env("APPIMAGE", "/tmp/emb-tm.AppImage")
+        .output()
+        .unwrap();
+    assert!(String::from_utf8_lossy(&out.stderr).contains("does not include the browser app"));
 }

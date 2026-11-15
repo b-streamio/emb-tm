@@ -116,7 +116,10 @@ pub fn main(argv: Vec<String>) -> i32 {
         println!("emb-tm {}", env!("CARGO_PKG_VERSION"));
         return 0;
     }
-    let res = match a.pos.first().map(String::as_str) {
+    // No command in an AppImage (a double click on it): the app.
+    let cmd = a.pos.first().map(String::as_str);
+    let cmd = cmd.or_else(|| std::env::var_os("APPIMAGE").map(|_| "app"));
+    let res = match cmd {
         Some("library") => library(&a),
         Some("versions") => versions(),
         Some("fetch") => fetch(&a),
