@@ -42,7 +42,9 @@ In the window, **Install emb-tm** adds it to the system's app menu; it then work
 even when `emb-tm app` is not running. Keep the same port: the saved project belongs to it.
 On Linux, `make install` installs the program and a menu entry into `~/.local`.
 
-**In a browser**: host `dist/` (from `make build`) on any static web server and choose
+**In a browser**: host `dist/` (from `make build`, or `emb-tm-pwa-<version>.tar.gz` from the
+releases) on any static web server over HTTPS, allowing connections to `https://emb3d.mitre.org`
+(the first-start download), and choose
 **Install app** in the address bar.
 
 **Command line**:

@@ -128,7 +128,7 @@ in (`include_str!`), `emb-tm fetch` downloads to `$EMB_TM_DATA`
 - Hosted by b-stream on its own origin
   with a strict CSP: no inline script except the wasm loader in
   `web/index.html` (the host hashes what it serves), no third-party CDN or fonts, `connect-src 'self'` plus
-  `https://emb3d.mitre.org` (Updates button only).
+  `https://emb3d.mitre.org` (the first-start EMB3D download and the Updates button).
 - `localStorage` key `emb3d-workbench/project` and the project / TM-BOM JSON
   formats are shared with the CLI and earlier versions: don't change them.
   They, the TM-BOM extension key, the clipboard key and the service worker
