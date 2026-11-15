@@ -13,7 +13,9 @@ as a tool you can apply to your own design. General threat modeling tools think 
 commercial platforms want your unreleased designs in their cloud. The Workbench fills that gap:
 describe the device, and the threats follow, with the reasoning shown.
 
-- **Free and open source**: GPL-2.0-only ([LICENSE](LICENSE)); use it, audit it, adapt it.
+- **Free and open source, for good**: GPL-2.0-only ([LICENSE](LICENSE)), no contributor
+  agreement; use it, audit it, adapt it, share it. Whoever passes it on must pass on the source
+  and the same freedoms: it can never be made closed.
 - **Offline first**: after the first load it needs no network, in the browser or as a desktop app.
 - **Your data stays yours**: no account, no backend, no telemetry; models are plain JSON files.
 - **Transparent**: every threat says which property brought it in; every decision has a reason.

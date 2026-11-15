@@ -48,6 +48,23 @@ Sign off every commit (`git commit -s`) to certify the
 [Developer Certificate of Origin](https://developercertificate.org/): you wrote the change or may
 submit it under GPL-2.0-only. The pipeline checks both (`make commit-check`).
 
+## Licence and copyright
+
+EMB3D Workbench is free software under the GNU General Public License, version 2 only, and stays
+so. Anyone may use, study, change and share it; whoever passes it on, changed or not, in a product
+or otherwise, must pass on the source and the same freedoms (GPL-2.0, sections 1 to 3). Nobody may
+turn it, or a version of it, into closed software, and nobody may stop anyone from sharing it at
+no cost.
+
+Contributions come in under the same licence they go out under (GPL-2.0-only): there is no
+contributor licence agreement and no copyright assignment, and you keep the copyright on your
+work. With many copyright holders, the project cannot be relicensed, least of all under a
+non-free licence, and every version already released stays GPL-2.0-only for good.
+
+Code generated with an AI assistant follows the same rules: the human submitting it reviews it,
+answers for it and signs it off; the tool may be credited in a trailer
+(`Co-Authored-By: …`) but never adds a `Signed-off-by`.
+
 ## Releases (maintainers)
 
 Run the **release** workflow on `main`. It computes the version from the commits since the last
