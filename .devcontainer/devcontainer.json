@@ -4,7 +4,7 @@
   "features": {
     "ghcr.io/devcontainers/features/python:1": {}
   },
-  "postCreateCommand": "rustup target add wasm32-unknown-unknown && rustup component add llvm-tools-preview && make tools",
+  "postCreateCommand": "rustup target add wasm32-unknown-unknown $(uname -m)-unknown-linux-musl && rustup component add llvm-tools-preview",
   "forwardPorts": [8000],
   "customizations": {
     "vscode": { "extensions": ["rust-lang.rust-analyzer"] }

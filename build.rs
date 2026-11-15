@@ -25,7 +25,7 @@ fn main() {
     if env::var_os("CARGO_FEATURE_PWA").is_some() {
         println!("cargo:rerun-if-changed=dist");
         if !Path::new("dist/index.html").is_file() {
-            panic!("the pwa feature embeds dist/: run `make build` first (or `make bin`)");
+            panic!("the pwa feature embeds dist/: run `make build`");
         }
         walk(Path::new("dist"), &mut files);
     }

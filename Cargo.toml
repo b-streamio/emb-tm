@@ -26,7 +26,7 @@ web-sys              = { version = "0.3", features = [
 unsafe_code = "forbid"
 
 [features]
-# `make bin`: embed dist/ in the command line for `emb-tm app`.
+# `make build`: embed dist/ in the command line for `emb-tm app`.
 pwa = []
 
 # The command line: native targets only.
