@@ -2,3 +2,5 @@
 /dist/
 /.vscode-ctags
 /.codex/
+/data/stix/emb3d-stix-*.json
+/data/stix/*.part

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-only
-"""Keep the EMB3D STIX files in data/stix/ in step with emb3d.mitre.org.
+"""Keep the EMB3D releases listed in data/stix/index.json in step with emb3d.mitre.org.
+The STIX files themselves are downloaded, never committed (MITRE's terms of use).
 
   python3 tools/emb3d_update.py check            list releases on emb3d.mitre.org that are not here yet
   python3 tools/emb3d_update.py add 2.0.2        download one release, verify it, add it to data/stix/index.json

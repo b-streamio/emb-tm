@@ -1,11 +1,15 @@
 # SPDX-License-Identifier: GPL-2.0-only
 .DEFAULT_GOAL := help
-.PHONY: help build bin serve app install uninstall tools test lint coverage security sbom package \
+.PHONY: help build bin serve app install uninstall tools data test lint coverage security sbom package \
 	commit-check release release-check
 
 # Port of `make serve` and `make app`. An installed app loads from it, so
 # pick one no other local server uses.
 PORT := 8000
+
+# MITRE's EMB3D releases listed in data/stix/index.json. Never shipped: the
+# app and `emb-tm fetch` download them from emb3d.mitre.org; the tests need them.
+STIX := $(addprefix data/stix/,$(shell sed -n 's/.*"file": "\(.*\)".*/\1/p' data/stix/index.json))
 
 # What the app fetches besides the wasm and its JavaScript glue: the shell in
 # web/ (copied to the top of dist/), data/ and these files. Keep in step with
@@ -67,9 +71,9 @@ build: $(BINDGEN) $(WASM_OPT) ## Release build of the PWA → dist/
 	$(BINDGEN) --target web --no-typescript --out-dir dist $(WASM)
 	$(WASM_OPT) $(WASM_OPT_FLAGS) -o dist/emb-tm_bg.wasm dist/emb-tm_bg.wasm
 	cp $(addprefix web/,$(WEB)) dist/
-	tar cf - $(FILES) data | tar xf - -C dist
+	tar cf - $(FILES) data/stix/index.json data/stix/README.md | tar xf - -C dist
 	sed "s|@STYLE_SRI@|sha384-$$(openssl dgst -sha384 -binary web/style.css | openssl base64 -A)|" web/index.html > dist/index.html
-	gzip -9nf dist/emb-tm_bg.wasm dist/data/stix/emb3d-stix-*.json
+	gzip -9nf dist/emb-tm_bg.wasm
 
 bin: build ## Self-contained emb-tm with the app embedded → target/release/emb-tm
 	cargo build --release --locked --features pwa
@@ -110,7 +114,12 @@ $(AUDIT) $(DENY) $(CARGO_LLVM_COV) $(CYCLONEDX) $(CLIFF):
 $(ABOUT):
 	cargo install --locked --features cli --root $(@D)/.. cargo-about@0.9.2
 
-test: ## Unit tests (tests/unit) and command-line tests (tests/cli.rs)
+data: $(STIX) ## Download the EMB3D releases from emb3d.mitre.org into data/stix (checksums verified)
+
+$(STIX) &: data/stix/index.json
+	cargo run --quiet --locked -- fetch
+
+test: data ## Unit tests (tests/unit) and command-line tests (tests/cli.rs)
 	cargo test --locked
 
 lint: ## rustfmt + clippy, warnings are errors
@@ -118,7 +127,7 @@ lint: ## rustfmt + clippy, warnings are errors
 	cargo clippy --all-targets -- -D warnings
 	cargo clippy --target wasm32-unknown-unknown -- -D warnings
 
-coverage: $(CARGO_LLVM_COV) ## Tests with line coverage (needs the llvm-tools-preview component); fails under COVERAGE_MIN
+coverage: data $(CARGO_LLVM_COV) ## Tests with line coverage (needs the llvm-tools-preview component); fails under COVERAGE_MIN
 	$(CARGO_LLVM_COV) llvm-cov --locked --ignore-filename-regex '$(COVERAGE_SKIP)' \
 		--fail-under-lines $(COVERAGE_MIN) --summary-only
 

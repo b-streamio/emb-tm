@@ -1,8 +1,12 @@
 # MITRE EMB3D™ data
 
-The `emb3d-stix-*.json` files are MITRE's EMB3D releases, as published at
-<https://emb3d.mitre.org/>. They are **not** covered by this project's GPL-2.0-only licence:
-they stay under MITRE's [terms of use](https://emb3d.mitre.org/subtabs/terms-of-use.html).
+emb-tm does not ship MITRE's EMB3D releases. `index.json` lists them with MITRE's URL and the
+SHA-256 each file must match; the app downloads a release from <https://emb3d.mitre.org/> on first
+start, and `emb-tm fetch` downloads them here (the `emb3d-stix-*.json` files, never committed).
+
+MITRE EMB3D™ content, in these files and quoted in the examples and in generated reports, is
+**not** covered by this project's GPL-2.0-only licence: it stays under MITRE's
+[terms of use](https://emb3d.mitre.org/subtabs/terms-of-use.html).
 
 ©2026 The MITRE Corporation. This work is reproduced and distributed with the permission of The
 MITRE Corporation.
