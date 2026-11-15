@@ -24,6 +24,10 @@ Contributions are welcome, and much of what the app knows is data (components, s
 examples), so many improvements need no Rust: see [CONTRIBUTING.md](.github/CONTRIBUTING.md).
 Report vulnerabilities privately: [SECURITY.md](.github/SECURITY.md).
 
+**MITRE EMB3D™** data is © The MITRE Corporation and ships under MITRE's own terms, not the GPL
+([data/stix/README.md](data/stix/README.md)). MITRE is a registered trademark of The MITRE
+Corporation; this project is not affiliated with or endorsed by MITRE.
+
 ## Use it
 
 **Desktop app**: one program carries the whole app and serves it on this computer only.
@@ -102,7 +106,7 @@ version and the changelog. The pipelines in `.github/workflows/` run on Gitea an
 | `src/` | `stix.rs` (EMB3D data), `model/` (file format), `engine/` (rules, TM-BOM, report), `ops/` (editing), `ui/` (the app), `cli/` (command line, scanner, app server) |
 | `web/` | Page, styles, service worker, manifest, icons, menu entry |
 | `library/` | Component library and scanner rules |
-| `data/stix/` | MITRE's EMB3D releases, as published (`tools/emb3d_update.py` manages them) |
+| `data/stix/` | MITRE's EMB3D releases, as published, under MITRE's terms (`tools/emb3d_update.py` manages them) |
 | `examples/` | Templates offered by New (`index.json`) |
 | `tests/` | Unit tests (`unit/`, one file per source file) and command-line tests |
 | `.config/`, `.github/` | Tool settings; contribution guide, security policy, CI |
