@@ -22,7 +22,7 @@ describe the device, and the threats follow, with the reasoning shown.
 
 Contributions are welcome, and much of what the app knows is data (components, scanner rules,
 examples), so many improvements need no Rust: see [CONTRIBUTING.md](.github/CONTRIBUTING.md).
-Report vulnerabilities privately: [SECURITY.md](.github/SECURITY.md).
+Report vulnerabilities as [SECURITY.md](.github/SECURITY.md) says.
 
 **MITRE EMB3D™** data is © The MITRE Corporation and ships under MITRE's own terms, not the GPL
 ([data/stix/README.md](data/stix/README.md)). MITRE is a registered trademark of The MITRE

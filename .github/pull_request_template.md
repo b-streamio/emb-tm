@@ -1,4 +1,4 @@
-<!-- Thank you! See CONTRIBUTING.md. Security problems: SECURITY.md, not a pull request. -->
+<!-- Thank you! See CONTRIBUTING.md. Security problems: see SECURITY.md (private report preferred). -->
 
 ## What and why
 

@@ -17,13 +17,14 @@ obligations.
 
 ## Reporting a vulnerability
 
-Report privately to **[security@b-stream.io](mailto:security@b-stream.io)**, never in a public issue
-or pull request. Include the version (`emb3d-wb --version` or the commit), what an attacker can do
+Report privately to **[security@b-stream.io](mailto:security@b-stream.io)** if you can, so a fix can
+ship before the details are public. A public issue is fine too: it is handled the same way, just
+faster. Include the version (`emb3d-wb --version` or the commit), what an attacker can do
 and how to reproduce it, and whether and how you want to be credited.
 
 Reports are handled on a best-effort basis. A fix goes into `main` and the next release, with a
-changelog line and credit if you wish; publication is coordinated with you and the embargo lasts
-at most 90 days from the report.
+changelog line and credit if you wish; for a private report, publication is coordinated with
+you and the embargo lasts at most 90 days.
 
 **Supported versions**: the latest release and `main`. Older releases get no fixes; update.
 

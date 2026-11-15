@@ -2,7 +2,7 @@
 
 Every contribution is welcome: bug reports, ideas, fixes, components, scanner rules, examples and
 documentation. Taking part means following the [code of conduct](CODE_OF_CONDUCT.md). Security
-problems go to [SECURITY.md](SECURITY.md), never to a public issue.
+problems: see [SECURITY.md](SECURITY.md); a private report is preferred.
 
 Much of what the app knows is data: components in `library/components.json`, scanner rules in
 `library/yocto-rules.json` ([reference](../library/README.md)), templates in `examples/` (listed

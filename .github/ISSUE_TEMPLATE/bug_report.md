@@ -5,7 +5,7 @@ title: ""
 labels: ["bug"]
 ---
 
-<!-- Security problems: email security@b-stream.io instead (SECURITY.md). -->
+<!-- Security problems: a private report to security@b-stream.io is preferred (SECURITY.md). -->
 
 **What happened, and what did you expect?**
 
