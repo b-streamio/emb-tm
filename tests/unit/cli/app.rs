@@ -5,7 +5,7 @@ use super::*;
 
 const FILES: &[(&str, &[u8])] = &[
     ("index.html", b"<html>"),
-    ("emb3d-wb_bg.wasm.gz", b"\x1f\x8b"),
+    ("emb-tm_bg.wasm.gz", b"\x1f\x8b"),
     ("data/stix/index.json", b"{}"),
 ];
 
@@ -21,7 +21,7 @@ fn serves_embedded_files_only() {
     );
     // The page inflates the .gz files itself: no Content-Encoding, no guessing.
     assert_eq!(
-        respond(FILES, "GET", "/emb3d-wb_bg.wasm.gz").1,
+        respond(FILES, "GET", "/emb-tm_bg.wasm.gz").1,
         "application/octet-stream"
     );
     for path in [

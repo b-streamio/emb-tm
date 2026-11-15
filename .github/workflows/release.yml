@@ -60,10 +60,10 @@ jobs:
           version="${tag#v}"
           cd target/release-files
           api="$GITHUB_SERVER_URL/api/v1/repos/$GITHUB_REPOSITORY"
-          packages="$GITHUB_SERVER_URL/api/packages/${GITHUB_REPOSITORY%%/*}/generic/emb3d-wb/$version"
+          packages="$GITHUB_SERVER_URL/api/packages/${GITHUB_REPOSITORY%%/*}/generic/emb-tm/$version"
           auth="Authorization: token $TOKEN"
           body=$(python3 -c 'import json, sys; print(json.dumps({
-              "tag_name": sys.argv[1], "name": "emb3d-wb " + sys.argv[2],
+              "tag_name": sys.argv[1], "name": "emb-tm " + sys.argv[2],
               "body": open("NOTES.md").read(), "prerelease": "-" in sys.argv[2]}))' \
             "$tag" "$version")
           id=$(curl -fsS -X POST -H "$auth" -H "Content-Type: application/json" -d "$body" "$api/releases" \

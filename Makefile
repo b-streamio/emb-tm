@@ -15,7 +15,7 @@ FILES := library/components.json examples/index.json \
 	examples/system/surveillance-alarm-system.project.json \
 	examples/yocto-scan/alarm-hub-image.project.json
 
-WASM := target/wasm32-unknown-unknown/release/emb3d-wb.wasm
+WASM := target/wasm32-unknown-unknown/release/emb-tm.wasm
 # wasm-bindgen must be the version in Cargo.lock; both tools are installed
 # into target/tools, one directory per version.
 BINDGEN_VERSION := $(shell awk '/^name = "wasm-bindgen"$$/ { getline; gsub(/"/, "", $$3); print $$3 }' Cargo.lock)
@@ -52,8 +52,8 @@ REL := target/release-files
 COMMIT_RE := ^(feat|fix|perf|refactor|revert|docs|test|build|ci|style|chore)(\([a-z0-9._-]+\))?!?: .+
 BASE ?= origin/main
 
-BIN := target/release/emb3d-wb
-# `make install`: the program, its icon and its menu entry (web/emb3d-wb.desktop).
+BIN := target/release/emb-tm
+# `make install`: the program, its icon and its menu entry (web/emb-tm.desktop).
 PREFIX ?= $(HOME)/.local
 
 help: ## Show available commands
@@ -65,34 +65,34 @@ build: $(BINDGEN) $(WASM_OPT) ## Release build of the PWA → dist/
 	rm -rf dist
 	mkdir -p dist
 	$(BINDGEN) --target web --no-typescript --out-dir dist $(WASM)
-	$(WASM_OPT) $(WASM_OPT_FLAGS) -o dist/emb3d-wb_bg.wasm dist/emb3d-wb_bg.wasm
+	$(WASM_OPT) $(WASM_OPT_FLAGS) -o dist/emb-tm_bg.wasm dist/emb-tm_bg.wasm
 	cp $(addprefix web/,$(WEB)) dist/
 	tar cf - $(FILES) data | tar xf - -C dist
 	sed "s|@STYLE_SRI@|sha384-$$(openssl dgst -sha384 -binary web/style.css | openssl base64 -A)|" web/index.html > dist/index.html
-	gzip -9nf dist/emb3d-wb_bg.wasm dist/data/stix/emb3d-stix-*.json
+	gzip -9nf dist/emb-tm_bg.wasm dist/data/stix/emb3d-stix-*.json
 
-bin: build ## Self-contained emb3d-wb with the app embedded → target/release/emb3d-wb
+bin: build ## Self-contained emb-tm with the app embedded → target/release/emb-tm
 	cargo build --release --locked --features pwa
 
-serve: bin ## Serve the app on 127.0.0.1:PORT (emb3d-wb app --no-open); install it from the browser
+serve: bin ## Serve the app on 127.0.0.1:PORT (emb-tm app --no-open); install it from the browser
 	$(BIN) app --no-open --port $(PORT)
 
 app: bin ## Serve the app and open it in its own window (Chromium, Chrome or Edge; CHROME=…)
 	$(BIN) app --port $(PORT)
 
-install: bin ## Install emb3d-wb and its menu entry into PREFIX (default ~/.local)
+install: bin ## Install emb-tm and its menu entry into PREFIX (default ~/.local)
 	@# A running app server keeps serving the old version; stop it so the next launch is new.
-	@pkill -f '^$(PREFIX)/bin/emb3d-wb app' && echo 'Stopped the running EMB3D Workbench server.' || true
-	install -Dm755 $(BIN) $(PREFIX)/bin/emb3d-wb
-	install -Dm644 web/icon.svg $(PREFIX)/share/icons/hicolor/scalable/apps/emb3d-wb.svg
+	@pkill -f '^$(PREFIX)/bin/emb-tm app' && echo 'Stopped the running emb-tm server.' || true
+	install -Dm755 $(BIN) $(PREFIX)/bin/emb-tm
+	install -Dm644 web/icon.svg $(PREFIX)/share/icons/hicolor/scalable/apps/emb-tm.svg
 	mkdir -p $(PREFIX)/share/applications
-	sed -e "s|^Exec=emb3d-wb |Exec=$(PREFIX)/bin/emb3d-wb |" \
-		-e "s|^Icon=emb3d-wb$$|Icon=$(PREFIX)/share/icons/hicolor/scalable/apps/emb3d-wb.svg|" \
-		web/emb3d-wb.desktop > $(PREFIX)/share/applications/emb3d-wb.desktop
+	sed -e "s|^Exec=emb-tm |Exec=$(PREFIX)/bin/emb-tm |" \
+		-e "s|^Icon=emb-tm$$|Icon=$(PREFIX)/share/icons/hicolor/scalable/apps/emb-tm.svg|" \
+		web/emb-tm.desktop > $(PREFIX)/share/applications/emb-tm.desktop
 
 uninstall: ## Remove what make install put into PREFIX
-	rm -f $(PREFIX)/bin/emb3d-wb $(PREFIX)/share/icons/hicolor/scalable/apps/emb3d-wb.svg \
-		$(PREFIX)/share/applications/emb3d-wb.desktop
+	rm -f $(PREFIX)/bin/emb-tm $(PREFIX)/share/icons/hicolor/scalable/apps/emb-tm.svg \
+		$(PREFIX)/share/applications/emb-tm.desktop
 
 tools: $(BINDGEN) $(WASM_OPT) $(AUDIT) $(DENY) $(CARGO_LLVM_COV) $(CYCLONEDX) $(ABOUT) $(CLIFF) ## Pinned tools, into target/tools (not system-wide)
 
@@ -126,23 +126,23 @@ security: $(AUDIT) $(DENY) ## Known vulnerabilities (RustSec), licences and sour
 	$(AUDIT) audit
 	$(DENY) deny --config .config/deny.toml check licenses bans sources
 
-sbom: $(CYCLONEDX) ## CycloneDX SBOM of the program and the app → target/sbom/emb3d-wb.cdx.json
-	$(CYCLONEDX) cyclonedx --format json --spec-version 1.5 --target all --override-filename emb3d-wb.cdx
+sbom: $(CYCLONEDX) ## CycloneDX SBOM of the program and the app → target/sbom/emb-tm.cdx.json
+	$(CYCLONEDX) cyclonedx --format json --spec-version 1.5 --target all --override-filename emb-tm.cdx
 	mkdir -p target/sbom
-	mv emb3d-wb.cdx.json target/sbom/
+	mv emb-tm.cdx.json target/sbom/
 
 package: bin sbom $(ABOUT) ## Release files of VERSION → target/release-files (archives, SBOM, notices, SHA256SUMS)
 	rm -rf $(REL)
-	mkdir -p $(REL)/emb3d-wb-$(VERSION)
+	mkdir -p $(REL)/emb-tm-$(VERSION)
 	$(ABOUT) about generate --locked -c .config/about.toml -o $(REL)/THIRD-PARTY-LICENSES.txt .config/about.hbs
-	cp $(BIN) LICENSE README.md CHANGELOG.md .github/SECURITY.md web/emb3d-wb.desktop web/icon.svg \
-		$(REL)/THIRD-PARTY-LICENSES.txt $(REL)/emb3d-wb-$(VERSION)/
-	$(TAR) -C $(REL) -cf - emb3d-wb-$(VERSION) | gzip -9n > $(REL)/emb3d-wb-$(VERSION)-$$(uname -m)-linux.tar.gz
+	cp $(BIN) LICENSE README.md CHANGELOG.md .github/SECURITY.md web/emb-tm.desktop web/icon.svg \
+		$(REL)/THIRD-PARTY-LICENSES.txt $(REL)/emb-tm-$(VERSION)/
+	$(TAR) -C $(REL) -cf - emb-tm-$(VERSION) | gzip -9n > $(REL)/emb-tm-$(VERSION)-$$(uname -m)-linux.tar.gz
 	cp LICENSE $(REL)/THIRD-PARTY-LICENSES.txt dist/
-	$(TAR) -C dist --transform 's,^\.,emb3d-wb-pwa-$(VERSION),' -cf - . | gzip -9n > $(REL)/emb3d-wb-pwa-$(VERSION).tar.gz
+	$(TAR) -C dist --transform 's,^\.,emb-tm-pwa-$(VERSION),' -cf - . | gzip -9n > $(REL)/emb-tm-pwa-$(VERSION).tar.gz
 	rm dist/LICENSE dist/THIRD-PARTY-LICENSES.txt
-	rm -r $(REL)/emb3d-wb-$(VERSION)
-	cp target/sbom/emb3d-wb.cdx.json $(REL)/emb3d-wb-$(VERSION).cdx.json
+	rm -r $(REL)/emb-tm-$(VERSION)
+	cp target/sbom/emb-tm.cdx.json $(REL)/emb-tm-$(VERSION).cdx.json
 	awk '/^## \[/ { f = index($$0, "[$(VERSION)]") } f' CHANGELOG.md > $(REL)/NOTES.md
 	cd $(REL) && sha256sum *.tar.gz *.cdx.json THIRD-PARTY-LICENSES.txt > SHA256SUMS
 
@@ -165,7 +165,7 @@ release: $(CLIFF) ## From the commits since the last tag: version, CHANGELOG.md,
 	cargo update --workspace --offline --quiet; \
 	$(GIT_CLIFF) --tag "$$next" --output CHANGELOG.md 2>/dev/null; \
 	git commit -q -s -m "chore(release): $$next" Cargo.toml Cargo.lock CHANGELOG.md; \
-	git tag -a "$$next" -m "emb3d-wb $${next#v}"; \
+	git tag -a "$$next" -m "emb-tm $${next#v}"; \
 	echo "Released $$next locally. Publish it with: git push origin HEAD $$next, then run the release workflow."
 
 release-check: ## Check that TAG (vX.Y.Z) is SemVer and matches Cargo.toml and CHANGELOG.md

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 //! With the `pwa` feature, embeds the files of `dist/` (from `make build`)
-//! in the command line, for `emb3d-wb app`. Without it the list
+//! in the command line, for `emb-tm app`. Without it the list
 //! is empty.
 
 use std::{env, fs, path::Path};

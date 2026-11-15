@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: GPL-2.0-only
 [Desktop Entry]
 Type=Application
-Name=EMB3D Workbench
+Name=emb-tm
 GenericName=Threat modeling
 Comment=Embedded-device threat modeling on MITRE EMB3D, offline
-Exec=emb3d-wb app
-Icon=emb3d-wb
+Exec=emb-tm app
+Icon=emb-tm
 Terminal=false
-# The window `emb3d-wb app` opens (Chromium --app, Wayland, default profile),
+# The window `emb-tm app` opens (Chromium --app, Wayland, default profile),
 # so the dock shows this entry's icon for it.
 StartupWMClass=chrome-127.0.0.1__-Default
 Categories=Development;

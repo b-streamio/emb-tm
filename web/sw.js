@@ -7,7 +7,7 @@
 // build, and fall back to the cache when offline.
 const CACHE = 'emb3d-workbench';
 const SHELL = [
-  './', 'index.html', 'emb3d-wb.js', 'emb3d-wb_bg.wasm.gz', 'style.css', 'manifest.webmanifest',
+  './', 'index.html', 'emb-tm.js', 'emb-tm_bg.wasm.gz', 'style.css', 'manifest.webmanifest',
   'icon.svg', 'icon-192.png', 'icon-512.png', 'library/components.json', 'data/stix/index.json',
   'examples/index.json',
 ];

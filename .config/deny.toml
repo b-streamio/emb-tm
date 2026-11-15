@@ -25,7 +25,7 @@ allow = [
 
 [[licenses.exceptions]]
 # This crate itself.
-name = "emb3d-wb"
+name = "emb-tm"
 allow = ["GPL-2.0-only"]
 
 [[licenses.exceptions]]

@@ -96,4 +96,4 @@ jobs:
           git checkout -q FETCH_HEAD
       - run: rustup target add wasm32-unknown-unknown
       - run: make bin
-      - run: target/release/emb3d-wb --version
+      - run: target/release/emb-tm --version

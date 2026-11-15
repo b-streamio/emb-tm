@@ -10,14 +10,14 @@ const SYSTEM: &str = "examples/system/surveillance-alarm-system.project.json";
 
 /// A fresh scratch directory for one test.
 fn tmp(name: &str) -> PathBuf {
-    let d = std::env::temp_dir().join(format!("emb3d-wb-test-{}-{name}", std::process::id()));
+    let d = std::env::temp_dir().join(format!("emb-tm-test-{}-{name}", std::process::id()));
     std::fs::create_dir_all(&d).unwrap();
     d
 }
 
-/// Runs `emb3d-wb args…`; returns `(exit code, stdout)`.
+/// Runs `emb-tm args…`; returns `(exit code, stdout)`.
 fn run(args: &[&str]) -> (i32, String) {
-    let out = Command::new(env!("CARGO_BIN_EXE_emb3d-wb"))
+    let out = Command::new(env!("CARGO_BIN_EXE_emb-tm"))
         .args(args)
         .output()
         .unwrap();
@@ -274,7 +274,7 @@ fn validate_library_versions_and_usage() {
     let (code, text) = run(&["--version"]);
     assert_eq!(
         (code, text.trim()),
-        (0, concat!("emb3d-wb ", env!("CARGO_PKG_VERSION")))
+        (0, concat!("emb-tm ", env!("CARGO_PKG_VERSION")))
     );
     let (code, text) = run(&["scan", "-o", "x.json"]);
     assert!(code == 1 && text.contains("No inputs found"));

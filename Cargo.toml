@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 [package]
-name         = "emb3d-wb"
-description  = "EMB3D Workbench: embedded-device threat modeling on MITRE EMB3D, as an offline PWA"
+name         = "emb-tm"
+description  = "emb-tm: embedded-device threat modeling on MITRE EMB3D, as an offline PWA"
 version      = "0.2.0"
 edition      = "2021"
 license      = "GPL-2.0-only"
@@ -26,7 +26,7 @@ web-sys              = { version = "0.3", features = [
 unsafe_code = "forbid"
 
 [features]
-# `make bin`: embed dist/ in the command line for `emb3d-wb app`.
+# `make bin`: embed dist/ in the command line for `emb-tm app`.
 pwa = []
 
 # The command line: native targets only.

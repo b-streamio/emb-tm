@@ -294,7 +294,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "emb3d-wb"
+name = "emb-tm"
 version = "0.2.0"
 dependencies = [
  "js-sys",

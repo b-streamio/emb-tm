@@ -6,17 +6,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#080f22">
 <meta name="description" content="Embedded-device threat modeling on MITRE EMB3D. Runs in your browser, works offline.">
-<title>EMB3D Workbench</title>
+<title>emb-tm</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="./style.css" integrity="@STYLE_SRI@">
-<link rel="modulepreload" href="./emb3d-wb.js">
-<!-- The wasm loader, the only inline script: it inflates emb3d-wb_bg.wasm.gz.
+<link rel="modulepreload" href="./emb-tm.js">
+<!-- The wasm loader, the only inline script: it inflates emb-tm_bg.wasm.gz.
      The host allows it by the hash of what it serves. -->
 <script type="module">
-import init from './emb3d-wb.js';
-const gz = await fetch('./emb3d-wb_bg.wasm.gz');
+import init from './emb-tm.js';
+const gz = await fetch('./emb-tm_bg.wasm.gz');
 const wasm = new Response(gz.body.pipeThrough(new DecompressionStream('gzip')), { headers: { 'content-type': 'application/wasm' } });
 await init({ module_or_path: wasm });
 </script>
