@@ -49,7 +49,7 @@ releases) on any static web server over HTTPS, allowing connections to `https://
 
 **Command line**:
 
-    emb-tm fetch                                           # EMB3D data from emb3d.mitre.org, once
+    emb-tm fetch                                           # EMB3D data ahead (otherwise on first use)
     emb-tm validate project.json                           # errors, unanswered questions
     emb-tm analyze project.json --tmbom out.json --report out.html [--pdf out.pdf]
     emb-tm analyze project.json --fail-on-open 0           # CI gate: exit 2 if threats are open

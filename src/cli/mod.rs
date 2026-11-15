@@ -22,7 +22,7 @@ use crate::{
     stix::{self, Emb3d},
 };
 use analyze::{analyze, validate};
-use fetch::{fetch, read_release};
+use fetch::{ensure_release, fetch, read_release};
 use library::{library, versions};
 use report::find_chrome;
 use scan::scan_cmd;
@@ -36,7 +36,8 @@ emb-tm command line. Same engine as the browser app.
                                             computer only (http://127.0.0.1, default port 8000)
   emb-tm library [--json]                 component types and their questions (what a project can answer)
   emb-tm versions                         EMB3D versions listed in data/stix, and which are downloaded
-  emb-tm fetch [<version>]                 download EMB3D releases from emb3d.mitre.org (MITRE's terms of use)
+  emb-tm fetch [<version>]                 download EMB3D releases from emb3d.mitre.org ahead, for offline
+                                            use (MITRE's terms of use); other commands download what they need
   emb-tm validate <project.json>          check a project; exit 1 on errors
   emb-tm scan [inputs] -o <project.json> [analyze options]
                          first model of a Yocto image, from its build outputs and CycloneDX SBOMs
@@ -211,7 +212,7 @@ fn load_emb3d(version: &str) -> Result<Emb3d, String> {
             have.join(", ")
         ));
     };
-    let bundle = serde_json::from_slice(&read_release(meta)?)
+    let bundle = serde_json::from_slice(&ensure_release(meta)?)
         .map_err(|e| format!("EMB3D {version}: {e}"))?;
     stix::parse(&bundle, version)
 }

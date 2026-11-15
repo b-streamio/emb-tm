@@ -54,6 +54,20 @@ fn read_in(dir: &Path, meta: &Value) -> Result<Vec<u8>, String> {
     Ok(bytes)
 }
 
+/// The file of release `meta`, downloaded first when it is missing or does
+/// not match: commands that need EMB3D get it themselves.
+pub(super) fn ensure_release(meta: &Value) -> Result<Vec<u8>, String> {
+    read_release(meta).or_else(|_| {
+        eprintln!(
+            "Downloading EMB3D {} from {} (MITRE's terms of use: {TERMS})",
+            plain(&meta["version"]),
+            plain(&meta["source"])
+        );
+        download(meta)?;
+        read_release(meta)
+    })
+}
+
 /// `emb-tm fetch [<version>]`: every release of the index, or one.
 pub(super) fn fetch(a: &Args) -> Result<i32, String> {
     let idx = index()?;

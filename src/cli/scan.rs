@@ -9,7 +9,7 @@ use super::{
     yocto::{from_deploy_dir, scan, Inputs},
     Args, RULES,
 };
-use crate::engine::Model;
+use crate::{engine::Model, model::Project};
 
 pub(super) fn scan_cmd(a: &Args) -> Result<i32, String> {
     let out = a.get("o").or_else(|| a.get("out")).ok_or(
@@ -21,9 +21,12 @@ pub(super) fn scan_cmd(a: &Args) -> Result<i32, String> {
         None => built_in("library/yocto-rules.json", RULES)?,
     };
     let lib = load_library()?;
+    // EMB3D first (downloaded when missing), before the slow part.
+    let mut first = Project::empty();
+    let e = release_for(&mut first, a)?;
     let (mut p, notes) = scan(&inputs, &rules, &lib, &today()).map_err(|e| format!("scan: {e}"))?;
     p.migrate();
-    let e = release_for(&mut p, a)?;
+    p.emb3d = first.emb3d;
     let m = Model::new(&e, &lib, &p);
     let (errors, _) = m.validate(&p);
     if !errors.is_empty() {
