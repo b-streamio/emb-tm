@@ -206,7 +206,7 @@ impl Ctx {
         let meta = meta.ok_or(format!("EMB3D STIX {v} is not available"))?;
         let bundle = match meta.session {
             Some(b) => b,
-            None => Arc::new(web::fetch_gzip_json(&format!("data/stix/{}.gz", meta.file)).await?),
+            None => Arc::new(web::data_json(&meta.source, &meta.sri()).await?),
         };
         let e = Arc::new(stix::parse(&bundle, v)?);
         self.parsed.update_value(|m| {

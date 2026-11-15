@@ -30,6 +30,8 @@ use crate::{
 };
 
 const STORE_KEY: &str = "emb3d-workbench/project";
+/// MITRE's EMB3D site: releases, threat pages, the Updates check.
+pub const MITRE: &str = "https://emb3d.mitre.org";
 /// Templates offered by New; the first one opens on a first visit.
 const EXAMPLES: &str = "examples/index.json";
 
@@ -47,14 +49,47 @@ pub enum Sel {
     Flow(u64),
 }
 
-/// An EMB3D release this copy can use.
+/// An EMB3D release this copy can use. emb-tm ships none: each browser
+/// downloads it from MITRE once (MITRE's terms of use) and keeps it offline.
 #[derive(Clone, Debug, Deserialize)]
 pub struct Release {
     pub version: String,
     pub file: String,
+    /// MITRE's URL of the file.
+    #[serde(default)]
+    pub source: String,
+    /// SHA-256 (hex) the download must match.
+    #[serde(default)]
+    pub sha256: String,
     /// Fetched from emb3d.mitre.org for this session only.
     #[serde(skip)]
     pub session: Option<Arc<Value>>,
+}
+
+impl Release {
+    /// Subresource integrity of the file (`sha256-<base64>`): the browser
+    /// rejects a download that does not match the pinned hash.
+    pub fn sri(&self) -> String {
+        const B64: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        let bytes: Vec<u8> = (0..self.sha256.len() / 2)
+            .filter_map(|i| u8::from_str_radix(self.sha256.get(2 * i..2 * i + 2)?, 16).ok())
+            .collect();
+        let mut out = String::from("sha256-");
+        for c in bytes.chunks(3) {
+            let n = c
+                .iter()
+                .enumerate()
+                .fold(0u32, |n, (i, &b)| n | u32::from(b) << (16 - 8 * i));
+            for i in 0..4 {
+                out.push(if i <= c.len() {
+                    char::from(B64[(n >> (18 - 6 * i)) as usize & 63])
+                } else {
+                    '='
+                });
+            }
+        }
+        out
+    }
 }
 
 /// `data/stix/index.json`.
@@ -117,27 +152,40 @@ pub fn file_name(project: &str, kind: &str) -> String {
     format!("{stem}.{kind}.json")
 }
 
+/// Where the start-up is.
+#[derive(Clone)]
+enum Stage {
+    Loading,
+    /// The release the project needs is not downloaded yet: ask first.
+    NeedData(Box<Project>, Release),
+    Failed(String),
+    Ready,
+}
+
 #[component]
 pub fn App() -> impl IntoView {
     let ctx = Ctx::new();
     provide_context(ctx);
-    let failed = RwSignal::new(None::<String>);
-    let ready = RwSignal::new(false);
+    let stage = RwSignal::new(Stage::Loading);
     leptos::task::spawn_local(async move {
-        if let Err(e) = boot(ctx).await {
-            failed.set(Some(e));
-        } else {
-            ready.set(true);
-        }
+        let next = match prepare(ctx).await {
+            Err(e) => Stage::Failed(e),
+            Ok((p, r)) if r.session.is_none() && web::cached(&r.source).await.is_none() => {
+                Stage::NeedData(Box::new(p), r)
+            }
+            Ok((p, r)) => finish(ctx, p, &r.version).await,
+        };
+        stage.set(next);
     });
     keyboard(ctx);
     view! {
         <div class="app">
-            {move || if ready.get() { view! { <Bar /> }.into_any() } else { view! { <header class="bar"><div class="brand">"emb-tm"</div></header> }.into_any() }}
-            {move || match (ready.get(), failed.get()) {
-                (true, _) => view! { <Main /> }.into_any(),
-                (false, Some(e)) => view! { <div class="loading">"Could not load the EMB3D data (" {e} "). The app needs to be opened from a web server, not as a file."</div> }.into_any(),
-                (false, None) => view! { <div class="loading">"Loading EMB3D…"</div> }.into_any(),
+            {move || if matches!(stage.get(), Stage::Ready) { view! { <Bar /> }.into_any() } else { view! { <header class="bar"><div class="brand">"emb-tm"</div></header> }.into_any() }}
+            {move || match stage.get() {
+                Stage::Ready => view! { <Main /> }.into_any(),
+                Stage::NeedData(p, r) => view! { <FirstRun stage p r /> }.into_any(),
+                Stage::Failed(e) => view! { <div class="loading">"Could not load the EMB3D data (" {e} "). Check the connection and reload. The app needs to be opened from a web server, not as a file."</div> }.into_any(),
+                Stage::Loading => view! { <div class="loading">"Loading EMB3D…"</div> }.into_any(),
             }}
         </div>
         {move || ctx.toast.get().map(|(_, msg)| view! { <div class="toast" role="status" aria-live="polite">{msg}</div> })}
@@ -145,7 +193,30 @@ pub fn App() -> impl IntoView {
     }
 }
 
-async fn boot(ctx: Ctx) -> Result<(), String> {
+/// First start: emb-tm ships no MITRE data, so the user downloads the
+/// release from emb3d.mitre.org once, under MITRE's terms of use.
+#[component]
+fn FirstRun(stage: RwSignal<Stage>, p: Box<Project>, r: Release) -> impl IntoView {
+    let ctx = ctx();
+    let v = r.version.clone();
+    let download = move |_| {
+        let (p, v) = (p.clone(), v.clone());
+        stage.set(Stage::Loading);
+        leptos::task::spawn_local(async move { stage.set(finish(ctx, *p, &v).await) });
+    };
+    view! {
+        <div class="loading">
+            <h3>{format!("Download MITRE EMB3D™ {}", r.version)}</h3>
+            <p>"emb-tm works from MITRE's EMB3D threat catalogue but does not ship it. Download it once from emb3d.mitre.org; it then stays in this browser and works offline."</p>
+            <p class="small">"MITRE EMB3D™ is © The MITRE Corporation and comes under MITRE's " <a class="extlink" href=format!("{MITRE}/subtabs/terms-of-use.html") target="_blank" rel="noopener">"terms of use"</a> ". emb-tm is not affiliated with or endorsed by MITRE."</p>
+            <button class="btn primary" on:click=download>{format!("Download EMB3D {}", r.version)}</button>
+        </div>
+    }
+}
+
+/// Loads the index, the library and the project to open; returns the
+/// project and the EMB3D release it needs.
+async fn prepare(ctx: Ctx) -> Result<(Project, Release), String> {
     let index: Index = serde_json::from_value(web::fetch_json("data/stix/index.json").await?)
         .map_err(|e| e.to_string())?;
     let lib: Library = serde_json::from_value(web::fetch_json("library/components.json").await?)
@@ -163,20 +234,30 @@ async fn boot(ctx: Ctx) -> Result<(), String> {
         },
     };
     p.migrate();
-    let version = p
+    let find = |v: &str| index.versions.iter().find(|r| r.version == v).cloned();
+    let release = p
         .emb3d
-        .clone()
-        .filter(|v| index.versions.iter().any(|r| &r.version == v))
-        .unwrap_or_else(|| index.default.clone());
-    p.emb3d = Some(version.clone());
+        .as_deref()
+        .and_then(find)
+        .or_else(|| find(&index.default))
+        .ok_or("data/stix/index.json lists no EMB3D release")?;
+    p.emb3d = Some(release.version.clone());
     ctx.index.set(index);
     ctx.lib.set(Arc::new(lib));
-    let e = ctx.release(&version).await?;
+    Ok((p, release))
+}
+
+/// Loads release `version` (from the cache, else from MITRE) and opens `p`.
+async fn finish(ctx: Ctx, mut p: Project, version: &str) -> Stage {
+    let e = match ctx.release(version).await {
+        Ok(e) => e,
+        Err(e) => return Stage::Failed(e),
+    };
     Model::new(&e, &ctx.lib.get_untracked(), &p).normalize(&mut p);
     ctx.emb3d.set(e);
     ctx.cur.set(p.root.clone());
     ctx.project.set(p);
-    Ok(())
+    Stage::Ready
 }
 
 /// `2.0.1` → `[2, 0, 1]`, for newest-first ordering.

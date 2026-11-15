@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 use leptos::prelude::*;
 
-use super::{ctx, example, examples, Ctx, Example};
+use super::{ctx, example, examples, Ctx, Example, MITRE};
 use crate::{
     model::{CustomType, Project},
     stix::Emb3d,
@@ -20,8 +20,6 @@ use custom::CustomEditor;
 use detail::detail;
 pub use updates::{check_updates, propose_version, Updates};
 use updates::{updates_panel, version_panel};
-
-const MITRE: &str = "https://emb3d.mitre.org";
 
 #[derive(Clone)]
 pub enum Dialog {

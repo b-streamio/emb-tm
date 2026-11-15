@@ -3,7 +3,7 @@
 //! mode, offline, blocked clipboard) degrade quietly.
 
 use serde_json::Value;
-use wasm_bindgen::{prelude::*, JsCast};
+use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
 fn window() -> Option<web_sys::Window> {
@@ -20,42 +20,62 @@ pub fn load(key: &str) -> Option<String> {
     window()?.local_storage().ok()??.get_item(key).ok()?
 }
 
-#[wasm_bindgen]
-extern "C" {
-    /// The browser's gzip inflater (web-sys has it behind an unstable flag).
-    type DecompressionStream;
-    #[wasm_bindgen(constructor, catch)]
-    fn new(format: &str) -> Result<DecompressionStream, JsValue>;
-}
-
 /// GET `url` and parse it as JSON.
 pub async fn fetch_json(url: &str) -> Result<Value, String> {
     let text = fetch_text(url).await?;
     serde_json::from_str(&text).map_err(|e| format!("{url}: {e}"))
 }
 
-/// GET the gzip file `url` (`make build` compresses the EMB3D releases) and
-/// parse the JSON inside.
-pub async fn fetch_gzip_json(url: &str) -> Result<Value, String> {
-    let body = get(url).await?.body().ok_or("no body")?;
-    let gunzip = DecompressionStream::new("gzip")
-        .map_err(|_| "this browser cannot read gzip files (DecompressionStream)")?;
-    let inflated = body.pipe_through(gunzip.unchecked_ref());
-    let res = web_sys::Response::new_with_opt_readable_stream(Some(&inflated))
-        .map_err(|_| format!("{url}: unreadable"))?;
+pub async fn fetch_text(url: &str) -> Result<String, String> {
+    text(get(url, &web_sys::RequestInit::new()).await?).await
+}
+
+/// The EMB3D releases downloaded from MITRE, apart from the service
+/// worker's cache of the app itself.
+const DATA_CACHE: &str = "emb-tm-emb3d";
+
+async fn data_cache() -> Option<web_sys::Cache> {
+    let caches = window()?.caches().ok()?;
+    Some(
+        JsFuture::from(caches.open(DATA_CACHE))
+            .await
+            .ok()?
+            .unchecked_into(),
+    )
+}
+
+/// `url` from the data cache, when it was downloaded before.
+pub async fn cached(url: &str) -> Option<web_sys::Response> {
+    let hit = JsFuture::from(data_cache().await?.match_with_str(url))
+        .await
+        .ok()?;
+    hit.dyn_into().ok()
+}
+
+/// JSON at `url`: from the data cache, else downloaded, checked by the
+/// browser against `sri` (`sha256-…`) and kept in the cache for offline use.
+pub async fn data_json(url: &str, sri: &str) -> Result<Value, String> {
+    let res = match cached(url).await {
+        Some(res) => res,
+        None => {
+            let init = web_sys::RequestInit::new();
+            init.set_integrity(sri);
+            let res = get(url, &init).await?;
+            if let (Some(c), Ok(copy)) = (data_cache().await, res.clone()) {
+                let _ = JsFuture::from(c.put_with_str(url, &copy)).await;
+            }
+            res
+        }
+    };
     let text = text(res).await.map_err(|e| format!("{url}: {e}"))?;
     serde_json::from_str(&text).map_err(|e| format!("{url}: {e}"))
 }
 
-pub async fn fetch_text(url: &str) -> Result<String, String> {
-    text(get(url).await?).await
-}
-
-async fn get(url: &str) -> Result<web_sys::Response, String> {
+async fn get(url: &str, init: &web_sys::RequestInit) -> Result<web_sys::Response, String> {
     let w = window().ok_or("no window")?;
-    let res: web_sys::Response = JsFuture::from(w.fetch_with_str(url))
+    let res: web_sys::Response = JsFuture::from(w.fetch_with_str_and_init(url, init))
         .await
-        .map_err(|_| format!("{url}: network error"))?
+        .map_err(|_| format!("{url}: network error, or the file did not match its checksum"))?
         .unchecked_into();
     if !res.ok() {
         return Err(format!("{url}: HTTP {}", res.status()));

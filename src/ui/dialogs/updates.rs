@@ -258,6 +258,8 @@ fn try_release(ctx: Ctx, v: String) {
                     i.versions.push(Release {
                         version: v.clone(),
                         file,
+                        source: url,
+                        sha256: String::new(),
                         session: Some(Arc::new(bundle)),
                     })
                 });
