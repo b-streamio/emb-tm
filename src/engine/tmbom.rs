@@ -57,7 +57,7 @@ impl Model<'_> {
         }
         let description = if p.meta.description.is_empty() {
             format!(
-                "Threat model of {}, built with EMB3D Workbench on MITRE EMB3D STIX {}.",
+                "Threat model of {}, built with emb-tm on MITRE EMB3D STIX {}.",
                 p.name, self.e.version
             )
         } else {
@@ -251,7 +251,7 @@ impl Model<'_> {
         if !m.iec.is_empty() {
             d += &format!("\nIEC 62443-4-2: {}", m.iec.join("; "));
         }
-        d += &format!("\nWorkbench status: {}.", cm_label(st));
+        d += &format!("\nemb-tm status: {}.", cm_label(st));
         if !why(n, mid).is_empty() {
             d += &format!("\nJustification: {}", why(n, mid));
         }

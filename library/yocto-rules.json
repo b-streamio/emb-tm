@@ -1,5 +1,5 @@
 {
-  "$comment": "Rules used by 'emb3d-wb scan' to turn Yocto build outputs and CycloneDX SBOMs into a Workbench project. See library/README.md.",
+  "$comment": "Rules used by 'emb-tm scan' to turn Yocto build outputs and CycloneDX SBOMs into a emb-tm project. See library/README.md.",
   "version": "0.1",
   "components": [
     {

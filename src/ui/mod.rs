@@ -133,7 +133,7 @@ pub fn App() -> impl IntoView {
     keyboard(ctx);
     view! {
         <div class="app">
-            {move || if ready.get() { view! { <Bar /> }.into_any() } else { view! { <header class="bar"><div class="brand">"EMB3D Workbench"</div></header> }.into_any() }}
+            {move || if ready.get() { view! { <Bar /> }.into_any() } else { view! { <header class="bar"><div class="brand">"emb-tm"</div></header> }.into_any() }}
             {move || match (ready.get(), failed.get()) {
                 (true, _) => view! { <Main /> }.into_any(),
                 (false, Some(e)) => view! { <div class="loading">"Could not load the EMB3D data (" {e} "). The app needs to be opened from a web server, not as a file."</div> }.into_any(),

@@ -97,7 +97,7 @@
   "emb3d": "2.0.1",
   "flowSeq": 14,
   "meta": {
-    "description": "Generic example of an intrusion alarm system: IP cameras and audio sensors (glass break, screams) report to an alarm hub, keypads arm and disarm it, and the hub contacts the security company's alarm receiving centre over Ethernet with an LTE backup, sending alarm events and video clips for verification. The hub's design comes from emb3d-wb scan of its Yocto image. Each box on the System page opens the design of that device.",
+    "description": "Generic example of an intrusion alarm system: IP cameras and audio sensors (glass break, screams) report to an alarm hub, keypads arm and disarm it, and the hub contacts the security company's alarm receiving centre over Ethernet with an LTE backup, sending alarm events and video clips for verification. The hub's design comes from emb-tm scan of its Yocto image. Each box on the System page opens the design of that device.",
     "owner": "",
     "reviewer": ""
   },

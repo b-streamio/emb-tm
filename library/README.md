@@ -3,7 +3,7 @@
 - `components.json`: the blocks of the left rail. Each component has `base` EMB3D property IDs
   (PIDs) and questions; each answer adds PIDs. Custom blocks and imported libraries use the same
   format.
-- `yocto-rules.json`: what `emb3d-wb scan` looks for in Yocto build outputs and how it answers
+- `yocto-rules.json`: what `emb-tm scan` looks for in Yocto build outputs and how it answers
   each question.
 
 ## Scanner rules
@@ -27,4 +27,4 @@ blocks by rule id.
 A condition whose input was not given is neither true nor false: it never selects an answer, and
 the answer finally chosen is flagged for review, naming the missing input. Regular expressions are
 [Rust's](https://docs.rs/regex/latest/regex/#syntax) (no look-around). After changing the rules,
-run `make test` and regenerate the scan example (`examples/yocto-scan/`) with `emb3d-wb scan`.
+run `make test` and regenerate the scan example (`examples/yocto-scan/`) with `emb-tm scan`.

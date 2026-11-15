@@ -31,7 +31,7 @@ pub(super) fn Bar() -> impl IntoView {
     };
     view! {
         <header class="bar">
-            <div class="brand">"EMB3D Workbench"</div>
+            <div class="brand">"emb-tm"</div>
             <div class="ver">
                 <select aria-label="EMB3D version" prop:value=move || ctx.emb3d.get().version.clone()
                     on:change=move |e| dialogs::propose_version(ctx, event_target_value(&e))>{move || versions(ctx)}</select>

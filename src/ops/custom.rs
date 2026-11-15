@@ -115,7 +115,7 @@ pub fn add_types(
     (added, remap)
 }
 
-/// Block types of a project, a Workbench TM-BOM or a component library
+/// Block types of a project, a emb-tm TM-BOM or a component library
 /// (`{"components": [...]}`, the format of `library/components.json`);
 /// the Device box is built in, so `container` components are left out.
 pub fn types_in(v: Value) -> Result<Vec<CustomType>, String> {

@@ -27,15 +27,15 @@ use scan::scan_cmd;
 pub use yocto::{from_deploy_dir, parse_bbenv, scan, Inputs};
 
 const USAGE: &str = "\
-EMB3D Workbench command line. Same engine as the browser app.
+emb-tm command line. Same engine as the browser app.
 
-  emb3d-wb --version                        the version of this program
-  emb3d-wb app [--port <n>] [--no-open]     open the browser app in its own window; it runs on this
+  emb-tm --version                        the version of this program
+  emb-tm app [--port <n>] [--no-open]     open the browser app in its own window; it runs on this
                                             computer only (http://127.0.0.1, default port 8000)
-  emb3d-wb library [--json]                 component types and their questions (what a project can answer)
-  emb3d-wb versions                         EMB3D versions available in data/stix
-  emb3d-wb validate <project.json>          check a project; exit 1 on errors
-  emb3d-wb scan [inputs] -o <project.json> [analyze options]
+  emb-tm library [--json]                 component types and their questions (what a project can answer)
+  emb-tm versions                         EMB3D versions available in data/stix
+  emb-tm validate <project.json>          check a project; exit 1 on errors
+  emb-tm scan [inputs] -o <project.json> [analyze options]
                          first model of a Yocto image, from its build outputs and CycloneDX SBOMs
       --deploy <dir>         deploy dir (tmp/deploy/images/<machine>): finds manifest, testdata.json, rootfs, SBOMs
       --image <name>         which image in the deploy dir, when there are several
@@ -43,7 +43,7 @@ EMB3D Workbench command line. Same engine as the browser app.
       --manifest <file>      <image>.manifest                 --rootfs <tar|dir> image rootfs
       --sbom <file>          CycloneDX JSON, repeatable       --kernel-config <file>  --uboot-config <file>
       --rules <file>         scanner rules (default library/yocto-rules.json)
-  emb3d-wb analyze  <project.json> [options]
+  emb-tm analyze  <project.json> [options]
       --emb3d <ver>          EMB3D version (default: the project's, else data/stix default)
       --tmbom <file>         write the TM-BOM (OWASP Threat Model Library schema v1.0.2)
       --report <file.html>   write a standalone HTML report
@@ -54,7 +54,7 @@ EMB3D Workbench command line. Same engine as the browser app.
       --fulltext             full MITRE threat descriptions in the report
       --fail-on-open <n>     exit 2 when more than n threats are open (CI gate)
 
-Data (library/, data/stix/, web/style.css) is read from $EMB3D_WB_ROOT, by default the source tree.
+Data (library/, data/stix/, web/style.css) is read from $EMB_TM_ROOT, by default the source tree.
 MITRE EMB3D(TM) data (c) The MITRE Corporation, under its terms of use (data/stix/README.md); this
 program is not affiliated with or endorsed by MITRE.
 ";
@@ -109,7 +109,7 @@ impl Args {
 pub fn main(argv: Vec<String>) -> i32 {
     let a = Args::parse(argv);
     if a.has("version") {
-        println!("emb3d-wb {}", env!("CARGO_PKG_VERSION"));
+        println!("emb-tm {}", env!("CARGO_PKG_VERSION"));
         return 0;
     }
     let res = match a.pos.first().map(String::as_str) {
@@ -140,7 +140,7 @@ pub fn main(argv: Vec<String>) -> i32 {
 }
 
 fn root() -> PathBuf {
-    std::env::var_os("EMB3D_WB_ROOT")
+    std::env::var_os("EMB_TM_ROOT")
         .map_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")), PathBuf::from)
 }
 

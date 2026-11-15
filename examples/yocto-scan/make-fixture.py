@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Builds a small, realistic Yocto deploy directory for testing 'emb3d-wb scan'.
+"""Builds a small, realistic Yocto deploy directory for testing 'emb-tm scan'.
 It is synthetic: alarm-hub-image, the hub of the surveillance and alarm system example
 (examples/system), on raspberrypi4-64 (Compute Module 4 class) with poky scarthgap:
 RAUC + hawkBit updates, a Mosquitto event bus with TLS, GStreamer RTSP recording of the

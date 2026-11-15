@@ -1,6 +1,6 @@
 {
-  "name": "EMB3D Workbench",
-  "short_name": "EMB3D",
+  "name": "emb-tm",
+  "short_name": "emb-tm",
   "description": "Embedded-device threat modeling on MITRE EMB3D. Runs in your browser, works offline.",
   "start_url": "./",
   "scope": "./",

@@ -17,7 +17,7 @@ pub(super) fn validate(a: &Args) -> Result<i32, String> {
     let file = a
         .pos
         .get(1)
-        .ok_or("usage: emb3d-wb validate <project.json>")?;
+        .ok_or("usage: emb-tm validate <project.json>")?;
     let mut p = load_project(file)?;
     let (e, lib) = (release_for(&mut p, a)?, load_library()?);
     let m = Model::new(&e, &lib, &p);
@@ -48,14 +48,14 @@ pub(super) fn validate(a: &Args) -> Result<i32, String> {
 }
 
 pub(super) fn analyze(a: &Args) -> Result<i32, String> {
-    let file = a.pos.get(1).ok_or("usage: emb3d-wb analyze <project.json> [--tmbom f] [--report f.html] [--pdf f.pdf] [--summary f.json]")?;
+    let file = a.pos.get(1).ok_or("usage: emb-tm analyze <project.json> [--tmbom f] [--report f.html] [--pdf f.pdf] [--summary f.json]")?;
     let mut p = load_project(file)?;
     let (e, lib) = (release_for(&mut p, a)?, load_library()?);
     let m = Model::new(&e, &lib, &p);
     let (errors, _) = m.validate(&p);
     if !errors.is_empty() {
         return Err(format!(
-            "Project has errors; run \"emb3d-wb validate\":\n{}",
+            "Project has errors; run \"emb-tm validate\":\n{}",
             errors.join("\n")
         ));
     }

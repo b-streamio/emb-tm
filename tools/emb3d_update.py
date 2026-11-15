@@ -26,7 +26,7 @@ def vkey(v):
 
 
 def fetch(url):
-    req = urllib.request.Request(url, headers={"User-Agent": "emb3d-workbench-updater"})
+    req = urllib.request.Request(url, headers={"User-Agent": "emb-tm-updater"})
     with urllib.request.urlopen(req, timeout=60) as r:
         return r.read()
 

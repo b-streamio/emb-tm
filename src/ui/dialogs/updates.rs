@@ -234,7 +234,7 @@ pub(super) fn updates_panel(ctx: Ctx, u: Updates) -> AnyView {
             let label = format!("Try {v} now");
             let content = view! {
                 <h3>{format!("EMB3D STIX {v} is available")}</h3>
-                <p>{format!("emb3d.mitre.org lists {}. This copy of the Workbench has {}.", found.join(", "), have.join(", "))}</p>
+                <p>{format!("emb3d.mitre.org lists {}. This copy of emb-tm has {}.", found.join(", "), have.join(", "))}</p>
                 <p>"Try it now: the release is downloaded into this browser session only."</p>
             };
             let try_it = Callback::new(move |()| try_release(ctx, v.clone()));

@@ -85,7 +85,7 @@ impl Project {
         }
     }
 
-    /// Accepts a project file or a TM-BOM exported by the Workbench.
+    /// Accepts a project file or a TM-BOM exported by emb-tm.
     pub fn from_json(v: Value) -> Result<Self, String> {
         let v = match v.pointer(&format!(
             "/extensions/{}/project",
@@ -95,9 +95,7 @@ impl Project {
             _ => v,
         };
         if !(v["pages"].is_array() || v["nodes"].is_array()) {
-            return Err(
-                "This file is not an EMB3D Workbench project or a TM-BOM exported from it.".into(),
-            );
+            return Err("This file is not a emb-tm project or a TM-BOM exported from it.".into());
         }
         serde_json::from_value(v).map_err(|e| format!("This project has problems:\n{e}"))
     }

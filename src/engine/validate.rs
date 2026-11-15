@@ -63,7 +63,7 @@ impl Model<'_> {
     ) {
         let Some(def) = self.type_of(n) else {
             errors.push(format!(
-                "{at}: unknown type \"{}\". Run \"emb3d-wb library\" for the list.",
+                "{at}: unknown type \"{}\". Run \"emb-tm library\" for the list.",
                 n.kind
             ));
             return;

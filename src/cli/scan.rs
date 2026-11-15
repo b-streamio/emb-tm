@@ -13,7 +13,7 @@ use crate::engine::Model;
 
 pub(super) fn scan_cmd(a: &Args) -> Result<i32, String> {
     let out = a.get("o").or_else(|| a.get("out")).ok_or(
-        "usage: emb3d-wb scan --deploy <dir> [--sbom f ...] -o project.json [--tmbom f] [--report f.html]",
+        "usage: emb-tm scan --deploy <dir> [--sbom f ...] -o project.json [--tmbom f] [--report f.html]",
     )?;
     let inputs = inputs(a)?;
     let rules = match a.get("rules") {

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-//! MITRE EMB3D STIX 2.1 bundle → Workbench data. MITRE's published file is
+//! MITRE EMB3D STIX 2.1 bundle → emb-tm data. MITRE's published file is
 //! read unchanged, so adding an EMB3D release is just dropping in the file.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};

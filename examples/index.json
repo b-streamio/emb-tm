@@ -9,7 +9,7 @@
     {
       "file": "yocto-scan/alarm-hub-image.project.json",
       "name": "Alarm hub Yocto image",
-      "description": "The alarm hub's Linux image as emb3d-wb scan models it, with evidence and answers to review."
+      "description": "The alarm hub's Linux image as emb-tm scan models it, with evidence and answers to review."
     }
   ]
 }

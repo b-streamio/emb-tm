@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-//! `emb3d-wb app`: serves the embedded PWA (feature `pwa`) on the loopback
+//! `emb-tm app`: serves the embedded PWA (feature `pwa`) on the loopback
 //! address and opens it in its own browser window.
 //!
 //! Only the embedded files are served: a request path is looked up in that
@@ -78,7 +78,7 @@ fn serve(mut s: TcpStream) {
 }
 
 /// Whether this app already answers on `port`: a second launch, for example
-/// from the menu entry (`emb3d-wb.desktop`).
+/// from the menu entry (`emb-tm.desktop`).
 fn running(port: u16) -> bool {
     let Ok(mut s) = TcpStream::connect(("127.0.0.1", port)) else {
         return false;
@@ -88,7 +88,7 @@ fn running(port: u16) -> bool {
     s.write_all(b"GET /manifest.webmanifest HTTP/1.0\r\n\r\n")
         .is_ok()
         && s.read_to_string(&mut reply).is_ok()
-        && reply.contains("\"name\": \"EMB3D Workbench\"")
+        && reply.contains("\"name\": \"emb-tm\"")
 }
 
 /// Opens `url` in its own window, or says where it is.
@@ -110,13 +110,13 @@ fn launch(browser: Option<String>, url: &str) {
 /// the app already runs on `port`, only opens it.
 pub fn run(port: u16, open: bool, browser: Option<String>) -> Result<i32, String> {
     if FILES.is_empty() {
-        return Err("This build of emb3d-wb does not include the browser app.".into());
+        return Err("This build of emb-tm does not include the browser app.".into());
     }
     let url = format!("http://127.0.0.1:{port}/");
     let listener = match TcpListener::bind(("127.0.0.1", port)) {
         Ok(l) => l,
         Err(_) if running(port) => {
-            println!("EMB3D Workbench already runs on {url}");
+            println!("emb-tm already runs on {url}");
             if open {
                 launch(browser, &url);
             }
@@ -124,7 +124,7 @@ pub fn run(port: u16, open: bool, browser: Option<String>) -> Result<i32, String
         }
         Err(e) => return Err(format!("127.0.0.1:{port}: {e}. Pick another --port.")),
     };
-    println!("EMB3D Workbench on {url} (Ctrl-C stops it; an installed app keeps working offline)");
+    println!("emb-tm on {url} (Ctrl-C stops it; an installed app keeps working offline)");
     if open {
         launch(browser, &url);
     }
