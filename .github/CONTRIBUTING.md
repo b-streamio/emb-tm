@@ -10,7 +10,8 @@ in `examples/index.json` and `FILES` in the `Makefile`).
 
 ## Pull requests
 
-The project lives on Codeberg: <https://codeberg.org/anischali/emb-tm>.
+The project lives on b-stream's forge: <https://git.b-stream.io/b-stream/emb-tm>. Issues and pull
+requests go there; the copies on Codeberg and GitHub are backup mirrors.
 
 1. For more than a small fix, open an issue first to agree on the approach.
 2. Fork, branch from `main`, and keep each pull request to one topic.
