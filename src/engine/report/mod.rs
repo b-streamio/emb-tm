@@ -66,7 +66,7 @@ impl Model<'_> {
             .map(|(k, v)| format!(r#"<tr><td>{k}</td><td class="num">{v}</td></tr>"#))
             .collect();
         format!(
-            r#"<article class="report"><p class="rbrand">{today} | EMB3D Workbench</p><div class="rcard"><div class="rcard-h">Threat model report for {}</div><table class="rkv"><tbody><tr><th>Owner</th><td>{}</td><th>Reviewer</th><td>{}</td></tr><tr><th>Threat catalogue</th><td>MITRE EMB3D STIX {}</td><th>Date generated</th><td>{today}</td></tr>{generator}</tbody></table></div><div class="rcard"><div class="rcard-h">Executive Summary</div><h4>Description</h4><p class="rdesc">{}</p><h4>Summary</h4><table class="rtable rsum"><thead><tr><th>Metric</th><th>Total</th></tr></thead><tbody>{rows}</tbody></table></div>{sections}</article>"#,
+            r#"<article class="report"><p class="rbrand">{today} | EMB3D Workbench</p><div class="rcard"><div class="rcard-h">Threat model report for {}</div><table class="rkv"><tbody><tr><th>Owner</th><td>{}</td><th>Reviewer</th><td>{}</td></tr><tr><th>Threat catalogue</th><td>MITRE EMB3D STIX {}</td><th>Date generated</th><td>{today}</td></tr>{generator}</tbody></table></div><div class="rcard"><div class="rcard-h">Executive Summary</div><h4>Description</h4><p class="rdesc">{}</p><h4>Summary</h4><table class="rtable rsum"><thead><tr><th>Metric</th><th>Total</th></tr></thead><tbody>{rows}</tbody></table></div>{sections}<p class="rmore">©2026 The MITRE Corporation (MITRE EMB3D™ data). This work is reproduced and distributed with the permission of The MITRE Corporation; terms of use: emb3d.mitre.org/subtabs/terms-of-use.html. Not affiliated with or endorsed by MITRE.</p></article>"#,
             esc(&p.name),
             dash(&m.owner),
             dash(&m.reviewer),

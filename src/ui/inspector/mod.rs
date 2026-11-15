@@ -101,6 +101,7 @@ fn summary(ctx: Ctx, p: &Project, m: &Model, page: &str) -> impl IntoView {
             {p.generator().map(|g| view! { <p class="small muted">{format!("Generated from {g}.")}</p> })}
             <p class="small">"Select a block to answer its questions and work through its threats. A " <b>"Device"</b> " box stands for a whole device: double-click it to design its inside on its own page. Use " <b>"Draw data flow"</b> " to connect blocks on the same page."</p>
             <p class="small">{format!("{total} threats in the whole model, from MITRE EMB3D STIX {} and your custom blocks. EMB3D rates evidence, not severity, so threats are ordered by how much real-world evidence exists for them.", m.e.version)}</p>
+            <p class="small muted">"MITRE EMB3D™ data © The MITRE Corporation, used under its " <a class="extlink" href="https://emb3d.mitre.org/subtabs/terms-of-use.html" target="_blank" rel="noopener">"terms of use"</a> ". Not affiliated with or endorsed by MITRE."</p>
         </div>
     }
 }

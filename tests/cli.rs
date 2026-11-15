@@ -253,6 +253,10 @@ fn system_example_analysis_and_report() {
         !html.contains("https://"),
         "a standalone report loads nothing from the network"
     );
+    assert!(
+        html.contains("permission of The MITRE Corporation"),
+        "reports carry MITRE's copyright designation (data/stix/README.md)"
+    );
     assert_eq!(run(&["analyze", SYSTEM, "--emb3d", "9.9"]).0, 1);
 }
 

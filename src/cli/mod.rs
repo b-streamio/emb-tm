@@ -55,6 +55,8 @@ EMB3D Workbench command line. Same engine as the browser app.
       --fail-on-open <n>     exit 2 when more than n threats are open (CI gate)
 
 Data (library/, data/stix/, web/style.css) is read from $EMB3D_WB_ROOT, by default the source tree.
+MITRE EMB3D(TM) data (c) The MITRE Corporation, under its terms of use (data/stix/README.md); this
+program is not affiliated with or endorsed by MITRE.
 ";
 
 /// Positional arguments and `--key [value]` options (repeatable; `-o` is `--o`).
