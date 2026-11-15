@@ -22,7 +22,10 @@ or pull request. Include the version (`emb3d-wb --version` or the commit), what 
 and how to reproduce it, and whether and how you want to be credited.
 
 Reports are handled on a best-effort basis. A fix goes into `main` and the next release, with a
-changelog line and credit if you wish; publication is coordinated with you.
+changelog line and credit if you wish; publication is coordinated with you and the embargo lasts
+at most 90 days from the report.
+
+**Supported versions**: the latest release and `main`. Older releases get no fixes; update.
 
 **Scope**: the browser app, the `emb3d-wb` command line and scanner, `emb3d-wb app` (the local
 server) and the release files. Issues in MITRE EMB3D data itself go to MITRE.
