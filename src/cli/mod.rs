@@ -3,6 +3,7 @@
 
 mod analyze;
 mod app;
+mod fetch;
 mod library;
 mod report;
 mod scan;
@@ -21,6 +22,7 @@ use crate::{
     stix::{self, Emb3d},
 };
 use analyze::{analyze, validate};
+use fetch::{fetch, read_release};
 use library::{library, versions};
 use report::find_chrome;
 use scan::scan_cmd;
@@ -33,7 +35,8 @@ emb-tm command line. Same engine as the browser app.
   emb-tm app [--port <n>] [--no-open]     open the browser app in its own window; it runs on this
                                             computer only (http://127.0.0.1, default port 8000)
   emb-tm library [--json]                 component types and their questions (what a project can answer)
-  emb-tm versions                         EMB3D versions available in data/stix
+  emb-tm versions                         EMB3D versions listed in data/stix, and which are downloaded
+  emb-tm fetch [<version>]                 download EMB3D releases from emb3d.mitre.org (MITRE's terms of use)
   emb-tm validate <project.json>          check a project; exit 1 on errors
   emb-tm scan [inputs] -o <project.json> [analyze options]
                          first model of a Yocto image, from its build outputs and CycloneDX SBOMs
@@ -115,6 +118,7 @@ pub fn main(argv: Vec<String>) -> i32 {
     let res = match a.pos.first().map(String::as_str) {
         Some("library") => library(&a),
         Some("versions") => versions(),
+        Some("fetch") => fetch(&a),
         Some("validate") => validate(&a),
         Some("analyze") => analyze(&a),
         Some("scan") => scan_cmd(&a),
@@ -177,12 +181,14 @@ fn load_emb3d(version: &str) -> Result<Emb3d, String> {
             .iter()
             .filter_map(|v| v["version"].as_str())
             .collect();
-        return Err(format!("EMB3D {version} is not in data/stix. Available: {}. Add it with tools/emb3d_update.py add {version}", have.join(", ")));
+        return Err(format!(
+            "EMB3D {version} is not listed in data/stix. Listed: {}.",
+            have.join(", ")
+        ));
     };
-    let file = root()
-        .join("data/stix")
-        .join(meta["file"].as_str().unwrap_or_default());
-    stix::parse(&read_json(&file)?, version)
+    let bundle = serde_json::from_slice(&read_release(meta)?)
+        .map_err(|e| format!("EMB3D {version}: {e}"))?;
+    stix::parse(&bundle, version)
 }
 
 /// Today (UTC) as `YYYY-MM-DD`.

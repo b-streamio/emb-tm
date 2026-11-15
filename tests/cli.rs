@@ -269,6 +269,10 @@ fn validate_library_versions_and_usage() {
     let (_, text) = run(&["library", "--json"]);
     assert!(serde_json::from_str::<Value>(&text).unwrap()["components"].is_array());
     assert!(run(&["versions"]).1.contains("2.0.1  (default)"));
+    assert!(run(&["versions"]).1.contains("downloaded"));
+    let (code, text) = run(&["fetch", "2.0.1"]);
+    assert!(code == 0 && text.contains("EMB3D 2.0.1: up to date") && text.contains("MITRE"));
+    assert_eq!(run(&["fetch", "9.9"]).0, 1);
     assert_eq!(run(&[]).0, 0);
     assert_eq!(run(&["nope"]).0, 1);
     let (code, text) = run(&["--version"]);

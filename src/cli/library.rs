@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 //! `library` and `versions`: what a project can use.
 
-use super::{index, load_library, plain, pretty, read_json, root, Args};
+use super::{index, load_library, plain, pretty, read_json, read_release, root, Args};
 
 pub(super) fn library(a: &Args) -> Result<i32, String> {
     if a.has("json") {
@@ -52,8 +52,13 @@ pub(super) fn versions() -> Result<i32, String> {
         } else {
             ""
         };
+        let here = if read_release(v).is_ok() {
+            "downloaded"
+        } else {
+            "not downloaded (emb-tm fetch)"
+        };
         println!(
-            "{}{default}  {}  added {}",
+            "{}{default}  {}  added {}  {here}",
             plain(&v["version"]),
             plain(&v["file"]),
             plain(&v["added"])

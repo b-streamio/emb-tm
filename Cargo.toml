@@ -15,9 +15,9 @@ serde_json           = "1"
 wasm-bindgen         = "0.2"
 wasm-bindgen-futures = "0.4"
 web-sys              = { version = "0.3", features = [
-    "Blob", "BlobPropertyBag", "Clipboard", "ClipboardEvent", "DataTransfer", "Document", "DomRect",
+    "Blob", "BlobPropertyBag", "Cache", "CacheStorage", "Clipboard", "ClipboardEvent", "DataTransfer", "Document", "DomRect",
     "DomTokenList", "DragEvent", "Element", "File", "FileList", "HtmlAnchorElement", "HtmlDetailsElement",
-    "HtmlElement", "HtmlInputElement", "KeyboardEvent", "Navigator", "PointerEvent", "ReadableStream", "ReadableWritablePair", "Response",
+    "HtmlElement", "HtmlInputElement", "KeyboardEvent", "Navigator", "PointerEvent", "RequestInit", "Response",
     "Selection", "ServiceWorkerContainer", "Storage", "Url", "Window",
 ] }
 
@@ -32,6 +32,8 @@ pwa = []
 # The command line: native targets only.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 regex = { version = "1", default-features = false, features = ["std", "perf", "unicode"] }
+# `emb-tm fetch`: the EMB3D files must match the hashes data/stix/index.json pins.
+sha2  = { version = "0.10", default-features = false }
 
 # Small wasm.
 [profile.release]
