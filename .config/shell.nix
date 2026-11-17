@@ -43,6 +43,9 @@ in
         export SSL_CERT_FILE=$f NIX_SSL_CERT_FILE=$f CURL_CA_BUNDLE=$f GIT_SSL_CAINFO=$f
         export RUSTUP_TOOLCHAIN=$(sed -n 's/^FROM .*rust:\([0-9.]*\)-.*/\1/p' ${./Containerfile})
         export T=''${T:-''${XDG_CACHE_HOME:-$HOME/.cache}/emb-tm/tools}
+        # rustup's standard library is outside the Nix store: let Nix's gcc
+        # link it (nix-shell refuses such "impure" paths otherwise).
+        export NIX_ENFORCE_PURITY=0
         # The static program links with Rust's own lld, not Nix's gcc.
         arch=$(uname -m)
         export CARGO_TARGET_''${arch^^}_UNKNOWN_LINUX_MUSL_LINKER=rust-lld
