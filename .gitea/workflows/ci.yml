@@ -108,7 +108,13 @@ jobs:
           git checkout -q -B main FETCH_HEAD
           git config user.name emb-tm-ci
           git config user.email "ci@${GITHUB_SERVER_URL#*://}"
-      - run: nix-shell .config/shell.nix --run "make release"
+      # (a newer commit on main releases in its own run: this one stops)
+      - name: Version, CHANGELOG.md and tag
+        run: |
+          if [ "$(git ls-remote origin refs/heads/main | cut -f1)" != "$GITHUB_SHA" ]; then
+            echo "main has moved on since $GITHUB_SHA: its own run releases."; exit 0
+          fi
+          nix-shell .config/shell.nix --run "make release"
       - name: Package, push and publish the release
         env:
           GH_RELEASE_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
