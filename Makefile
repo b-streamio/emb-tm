@@ -4,7 +4,7 @@
 # static emb-tm. The pinned tools install themselves into target/tools on
 # first use, never system-wide.
 .DEFAULT_GOAL := help
-.PHONY: help build app install uninstall check security package release publish image tools
+.PHONY: help build app install uninstall check security package release publish github image tools
 
 # `make app`: an installed app loads from this port, so keep it.
 PORT := 8000
@@ -137,6 +137,8 @@ package: build security $(ABOUT) $(APPIMAGETOOL) $(RUNTIME)
 		$(REL)/AppDir $(REL)/emb-tm-$(VERSION)-$(shell uname -m).AppImage
 	cp target/sbom/emb-tm.cdx.json $(REL)/emb-tm-$(VERSION).cdx.json
 	awk '/^## \[/ { f = index($$0, "[$(VERSION)]") } f' CHANGELOG.md > $(REL)/NOTES.md
+	python3 -c 'import json, sys; print(json.dumps({"tag_name": sys.argv[1], "name": "emb-tm " + sys.argv[1][1:], \
+		"body": open(sys.argv[2]).read(), "prerelease": "-" in sys.argv[1]}))' v$(VERSION) $(REL)/NOTES.md > $(REL)/release.json
 	cd $(REL) && sha256sum *.AppImage *.tar.gz *.cdx.json THIRD-PARTY-LICENSES.txt > SHA256SUMS
 endif
 
@@ -176,12 +178,32 @@ publish: ## (CI) Upload the release files to the forge's packages, and the relea
 	[ -n "$$tag" ] || exit 0; \
 	api="$${GITHUB_SERVER_URL%/}/api/v1/repos/$$GITHUB_REPOSITORY/releases"; \
 	if auth | curl -fsS -K - -o /dev/null "$$api/tags/$$tag" 2>/dev/null; then echo "release $$tag already there"; exit 0; fi; \
-	python3 -c 'import json, sys; print(json.dumps({"tag_name": sys.argv[1], "name": "emb-tm " + sys.argv[1][1:], \
-		"body": open("NOTES.md").read(), "prerelease": "-" in sys.argv[1]}))' "$$tag" > release.json; \
 	id=$$(auth | curl -fsS -K - -H 'Content-Type: application/json' -X POST --data-binary @release.json "$$api" \
 		| python3 -c 'import json, sys; print(json.load(sys.stdin)["id"])'); \
 	for f in $(ASSETS); do \
 		auth | curl -fsS -K - -o /dev/null -F "attachment=@$$f" "$$api/$$id/assets?name=$$f"; echo "attached $$f"; \
+	done
+
+# A tagged HEAD also gets its release on GitHub (GH_REPO), with the AppImage
+# and the PWA only: the tag is pushed there first. GH_RELEASE_TOKEN (contents:
+# write on GH_REPO) reaches git and curl through their environment and
+# standard input, never as an argument.
+GH_REPO ?= b-streamio/emb-tm
+github: ## (CI) The release of a tagged HEAD on GitHub (GH_REPO): AppImage and PWA
+	@set -e; tag=$$(git tag --points-at HEAD 'v*' | head -n 1); \
+	[ -n "$$tag" ] || { echo 'HEAD has no tag: nothing to release on GitHub.'; exit 0; }; \
+	: "$${GH_RELEASE_TOKEN:?a token that writes the contents of $(GH_REPO)}"; \
+	auth() { printf 'header = "Authorization: Bearer %s"\n' "$$GH_RELEASE_TOKEN"; }; \
+	GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.https://github.com/.extraHeader \
+	GIT_CONFIG_VALUE_0="Authorization: Basic $$(printf 'x-access-token:%s' "$$GH_RELEASE_TOKEN" | base64 -w0)" \
+		git push -q https://github.com/$(GH_REPO).git "refs/tags/$$tag"; \
+	api=https://api.github.com/repos/$(GH_REPO)/releases; \
+	if auth | curl -fsS -K - -o /dev/null "$$api/tags/$$tag" 2>/dev/null; then echo "GitHub release $$tag already there"; exit 0; fi; \
+	cd $(REL); id=$$(auth | curl -fsS -K - -H 'Accept: application/vnd.github+json' -X POST --data-binary @release.json "$$api" \
+		| python3 -c 'import json, sys; print(json.load(sys.stdin)["id"])'); \
+	for f in *.AppImage emb-tm-pwa-*.tar.gz; do \
+		auth | curl -fsS -K - -o /dev/null -H 'Content-Type: application/octet-stream' --data-binary @"$$f" \
+			"https://uploads.github.com/repos/$(GH_REPO)/releases/$$id/assets?name=$$f"; echo "attached $$f to GitHub"; \
 	done
 
 image: ## The build environment with every tool (.config/Containerfile), as IMAGE

@@ -14,12 +14,14 @@
 #             static program, PWA), published as emb-tm-dev/<branch>-<commit>
 #   release   on main, when everything passed and the Conventional Commits
 #             since the last tag call for it: version, CHANGELOG.md, tag, a
-#             Gitea release and the package emb-tm/vX.Y.Z
+#             Gitea release and the package emb-tm/vX.Y.Z, and the same release
+#             on GitHub (b-streamio/emb-tm) with the AppImage and the PWA
 #
-# The mirrors (Codeberg, GitHub) do not run it. Secrets, both optional:
-# PACKAGES_TOKEN when the job token may not write packages (the release
-# files), RELEASE_TOKEN when only a user may push the release commit to
-# main.
+# The mirrors (Codeberg, GitHub) do not run it. Secrets: PACKAGES_TOKEN
+# when the job token may not write packages (the release files),
+# RELEASE_TOKEN when only a user may push the release commit to main (both
+# optional), GH_RELEASE_TOKEN for the GitHub release (contents: write on
+# b-streamio/emb-tm).
 name: ci
 
 on:
@@ -108,9 +110,12 @@ jobs:
           git config user.email "ci@${GITHUB_SERVER_URL#*://}"
       - run: nix-shell .config/shell.nix --run "make release"
       - name: Package, push and publish the release
+        env:
+          GH_RELEASE_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
         run: |
           tag=$(git tag --points-at HEAD 'v*' | head -n 1)
           [ -n "$tag" ] || exit 0
           nix-shell .config/shell.nix --run "make package"
           git push -q --atomic origin HEAD:refs/heads/main "refs/tags/$tag"
           nix-shell .config/shell.nix --run "make publish"
+          nix-shell .config/shell.nix --run "make github"

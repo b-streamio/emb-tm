@@ -98,7 +98,8 @@ coverage, fails under `COVERAGE_MIN`; downloads the EMB3D releases into
 licences), `make image` (the build environment of `.config/Containerfile`, every
 pinned tool in `/opt/emb-tm/tools`), `make release`
 (version + CHANGELOG.md + commit + tag, when the commits call for it),
-`make publish` (CI: packages and release on the forge). Outside the image,
+`make publish` (CI: packages and release on the forge), `make github` (CI: the
+release of a tag on GitHub, `b-streamio/emb-tm`, AppImage and PWA only). Outside the image,
 pinned tools install into `target/tools` on first use (`T`). The workflows (`.gitea/workflows/`,
 git.b-stream.io's Gitea Actions, runner label `builder`: bstream-iac's Nix
 builder; each step is `nix-shell .config/shell.nix --run "make …"`,
