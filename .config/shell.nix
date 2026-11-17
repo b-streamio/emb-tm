@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0-only
 #
-# The emb-tm build environment on a Nix host (the CI builder, as lp-boot):
+# The emb-tm build environment on a Nix host (the CI builder):
 # the tools of .config/Containerfile from a pinned nixpkgs (bstream-iac's
 # pin), Rust from rustup at the version of the Containerfile, and the pinned
 # tools of the Makefile in T, built once and kept between jobs.
@@ -16,11 +16,21 @@ let
     stdenv = pkgs.gcc14Stdenv;
     packages = with pkgs; [
         rustup gnumake gitMinimal curl cacert python3 openssl pkg-config zlib
-        file gnutar gzip util-linux appimage-run trivy
+        file gnutar gzip util-linux findutils patchelf appimage-run trivy
     ];
     # What the programs in T and the toolchains of rustup link against: a
     # GC root keeps it while T exists.
     roots = pkgs.writeText "emb-tm-roots" (toString ([ stdenv.cc ] ++ packages));
+    # A program of the toolchain whose loader this host lacks (NixOS: rust-lld,
+    # the llvm-tools...) gets the loader and libraries of Nix.
+    fixup = pkgs.writeShellScript "emb-tm-fixup" ''
+        loader=$(cat ${stdenv.cc}/nix-support/dynamic-linker)
+        find "$(rustc --print sysroot)" -type f -perm -u+x | while read -r f; do
+            i=$(patchelf --print-interpreter "$f" 2> /dev/null) || continue
+            [ -e "$i" ] || patchelf --set-interpreter "$loader" \
+                --add-rpath ${pkgs.lib.makeLibraryPath [ pkgs.zlib stdenv.cc.cc.lib ]} "$f"
+        done
+    '';
 in
 (pkgs.mkShell.override { inherit stdenv; }) {
     inherit packages;
@@ -44,6 +54,7 @@ in
         flock "$T/.lock" sh -ec '
             rustup -q toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal \
                 -c rustfmt,clippy,llvm-tools-preview -t wasm32-unknown-unknown,'"$arch"'-unknown-linux-musl
+            ${fixup}
             make -s -C ${toString ./..} tools' >&2 || exit 1
     '';
 }

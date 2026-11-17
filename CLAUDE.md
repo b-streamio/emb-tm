@@ -101,7 +101,7 @@ pinned tool in `/opt/emb-tm/tools`), `make release`
 `make publish` (CI: packages and release on the forge). Outside the image,
 pinned tools install into `target/tools` on first use (`T`). The workflows (`.gitea/workflows/`,
 git.b-stream.io's Gitea Actions, runner label `builder`: bstream-iac's Nix
-builder, as lp-boot; each step is `nix-shell .config/shell.nix --run "make …"`,
+builder; each step is `nix-shell .config/shell.nix --run "make …"`,
 pinned nixpkgs, Rust from rustup at the Containerfile's version, the pinned
 tools built once into `~/.cache/emb-tm/tools`; no JavaScript actions, the job
 token checks out with Basic auth) only call these targets; the mirrors don't run them. The program is

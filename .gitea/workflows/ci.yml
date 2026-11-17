@@ -2,7 +2,7 @@
 #
 # emb-tm CI on git.b-stream.io (Gitea Actions). The jobs run on the
 # organization's builder host (bstream-iac, src/apps/builder, label
-# `builder`, as lp-boot), which has bash, git and Nix: each step runs a make
+# `builder`), which has bash, git and Nix: each step runs a make
 # target in the build environment of .config/shell.nix (the tools of
 # .config/Containerfile, from a pinned nixpkgs), so a job runs the same on
 # a workstation (make image):
