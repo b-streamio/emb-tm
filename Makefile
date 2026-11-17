@@ -187,15 +187,16 @@ publish: ## (CI) Upload the release files to the forge's packages, and the relea
 # A tagged HEAD also gets its release on GitHub (GH_REPO), with the AppImage
 # and the PWA only: the tag is pushed there first. GH_RELEASE_TOKEN (contents:
 # write on GH_REPO) reaches git and curl through their environment and
-# standard input, never as an argument.
+# standard input, never as an argument; the checkout's header for the forge
+# (http.extraHeader) is dropped, or GitHub gets both and refuses.
 GH_REPO ?= b-streamio/emb-tm
 github: ## (CI) The release of a tagged HEAD on GitHub (GH_REPO): AppImage and PWA
 	@set -e; tag=$$(git tag --points-at HEAD 'v*' | head -n 1); \
 	[ -n "$$tag" ] || { echo 'HEAD has no tag: nothing to release on GitHub.'; exit 0; }; \
 	: "$${GH_RELEASE_TOKEN:?a token that writes the contents of $(GH_REPO)}"; \
 	auth() { printf 'header = "Authorization: Bearer %s"\n' "$$GH_RELEASE_TOKEN"; }; \
-	GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.https://github.com/.extraHeader \
-	GIT_CONFIG_VALUE_0="Authorization: Basic $$(printf 'x-access-token:%s' "$$GH_RELEASE_TOKEN" | base64 -w0)" \
+	GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=http.extraHeader GIT_CONFIG_VALUE_0= GIT_CONFIG_KEY_1=http.extraHeader \
+	GIT_CONFIG_VALUE_1="Authorization: Basic $$(printf 'x-access-token:%s' "$$GH_RELEASE_TOKEN" | base64 -w0)" \
 		git push -q https://github.com/$(GH_REPO).git "refs/tags/$$tag"; \
 	api=https://api.github.com/repos/$(GH_REPO)/releases; \
 	if auth | curl -fsS -K - -o /dev/null "$$api/tags/$$tag" 2>/dev/null; then echo "GitHub release $$tag already there"; exit 0; fi; \
