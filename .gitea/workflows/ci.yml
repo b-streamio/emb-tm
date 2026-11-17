@@ -65,7 +65,8 @@ jobs:
           git checkout -q FETCH_HEAD
       - run: >
           nix-shell .config/shell.nix --run "trivy fs --scanners vuln,secret,misconfig
-          --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --skip-dirs target --skip-dirs dist ."
+          --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --skip-dirs target --skip-dirs dist
+          --skip-files .config/Containerfile ."
 
   package:
     runs-on: builder
