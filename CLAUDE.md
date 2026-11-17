@@ -67,7 +67,8 @@ web/           the app shell, copied to the top of dist/: index.html (the page
                offline), manifest, icons, emb-tm.desktop (menu entry,
                `make install` → ~/.local)
 .config/       tool settings: deny.toml, cliff.toml, about.toml + about.hbs,
-               Containerfile (the build environment: CI and `make image`)
+               Containerfile (the build environment, `make image`), shell.nix
+               (the same on a Nix host: the CI builder)
 .github/       CONTRIBUTING, SECURITY (CRA steward policy), CODE_OF_CONDUCT,
                templates
 .gitea/        workflows: ci (checks, packages, release on main), emb3d-update
@@ -95,14 +96,15 @@ coverage, fails under `COVERAGE_MIN`; downloads the EMB3D releases into
 `data/stix` first), `make security` (cargo-audit, cargo-deny, CycloneDX SBOM),
 `make package` (AppImage, static program, PWA, SBOM, SHA256SUMS, third-party
 licences), `make image` (the build environment of `.config/Containerfile`, every
-pinned tool in `/opt/emb-tm/tools`; the CI builds it once per change and runs
-its jobs in it), `make release`
+pinned tool in `/opt/emb-tm/tools`), `make release`
 (version + CHANGELOG.md + commit + tag, when the commits call for it),
 `make publish` (CI: packages and release on the forge). Outside the image,
 pinned tools install into `target/tools` on first use (`T`). The workflows (`.gitea/workflows/`,
-git.b-stream.io's Gitea Actions, runner label `container`, pinned images, no
-JavaScript actions, the job token checks out with Basic auth)
-only call these targets; the mirrors don't run them. The program is
+git.b-stream.io's Gitea Actions, runner label `builder`: bstream-iac's Nix
+builder, as lp-boot; each step is `nix-shell .config/shell.nix --run "make …"`,
+pinned nixpkgs, Rust from rustup at the Containerfile's version, the pinned
+tools built once into `~/.cache/emb-tm/tools`; no JavaScript actions, the job
+token checks out with Basic auth) only call these targets; the mirrors don't run them. The program is
 standalone: `library/`, `data/stix/index.json` and `web/style.css` are built
 in (`include_str!`), `emb-tm fetch` downloads to `$EMB_TM_DATA`
 (default `~/.local/share/emb-tm/stix`).

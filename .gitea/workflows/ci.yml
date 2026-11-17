@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: GPL-2.0-only
 #
-# emb-tm CI on git.b-stream.io (Gitea Actions, runner label `container`).
-# The jobs run in the build environment of .config/Containerfile and only
-# call make targets, so a job runs the same on a workstation (make image):
+# emb-tm CI on git.b-stream.io (Gitea Actions). The jobs run on the
+# organization's builder host (bstream-iac, src/apps/builder, label
+# `builder`, as lp-boot), which has bash, git and Nix: each step runs a make
+# target in the build environment of .config/shell.nix (the tools of
+# .config/Containerfile, from a pinned nixpkgs), so a job runs the same on
+# a workstation (make image):
 #
-#   image     builds the environment when .config/Containerfile or the
-#             Makefile changed, into the registry as emb-tm-build:<hash>
 #   check     commit messages of a pull request, rustfmt, clippy, unit and
 #             CLI tests with line coverage
 #   trivy     vulnerable dependencies, committed secrets, misconfigurations
@@ -16,9 +17,9 @@
 #             Gitea release and the package emb-tm/vX.Y.Z
 #
 # The mirrors (Codeberg, GitHub) do not run it. Secrets, both optional:
-# PACKAGES_TOKEN when the job token may not read or write packages (the
-# image, the release files), RELEASE_TOKEN when only a user may push the
-# release commit to main.
+# PACKAGES_TOKEN when the job token may not write packages (the release
+# files), RELEASE_TOKEN when only a user may push the release commit to
+# main.
 name: ci
 
 on:
@@ -30,47 +31,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  image:
-    runs-on: container
-    container: quay.io/buildah/stable:v1.45.1
-    outputs:
-      ref: ${{ steps.image.outputs.ref }}
-    steps:
-      - name: Checkout
-        env:
-          TOKEN: ${{ github.token }}
-        run: |
-          dnf -y -q install git-core make
-          git init -q .
-          git -c http.extraHeader="Authorization: Basic $(printf 'ci:%s' "$TOKEN" | base64 -w0)" \
-              fetch -q --depth 1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$GITHUB_SHA"
-          git checkout -q FETCH_HEAD
-      - name: Build and push it unless the registry has it
-        id: image
-        env:
-          TOKEN: ${{ secrets.PACKAGES_TOKEN || github.token }}
-        run: |
-          registry=${GITHUB_SERVER_URL#*://}
-          image=$(make -s -p 2>/dev/null | sed -n 's/^IMAGE := //p')
-          ref="$registry/${GITHUB_REPOSITORY%%/*}/$image"
-          echo "ref=$ref" >> "$GITHUB_OUTPUT"
-          if printf 'user = "ci:%s"\n' "$TOKEN" | curl -fsS -K - -o /dev/null -I \
-              -H 'Accept: application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json' \
-              "$GITHUB_SERVER_URL/v2/${GITHUB_REPOSITORY%%/*}/${image%%:*}/manifests/${image#*:}"; then
-            echo "$ref is there"; exit 0
-          fi
-          printf '%s' "$TOKEN" | buildah login -u ci --password-stdin "$registry"
-          make image ENGINE=buildah IMAGE="$ref"
-          buildah push "$ref"
-
   check:
-    needs: image
-    runs-on: container
-    container:
-      image: ${{ needs.image.outputs.ref }}
-      credentials:
-        username: ci
-        password: ${{ secrets.PACKAGES_TOKEN || github.token }}
+    runs-on: builder
     steps:
       # (a pull request: with its base branch, for the commit messages)
       - name: Checkout
@@ -86,35 +48,27 @@ jobs:
             git fetch -q --depth 1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$GITHUB_SHA"
           fi
           git checkout -q FETCH_HEAD
-      - run: make check BASE="origin/${GITHUB_BASE_REF:-main}"
+      - run: nix-shell .config/shell.nix --run "make check BASE=origin/${GITHUB_BASE_REF:-main}"
 
   # Findings are in this job's log (Gitea has no code scanning view); HIGH
   # and CRITICAL ones fail it.
   trivy:
-    runs-on: container
-    container: docker.io/aquasec/trivy:0.76.2
+    runs-on: builder
     steps:
       - name: Checkout
         env:
           TOKEN: ${{ github.token }}
         run: |
-          apk add --no-cache git
           git init -q .
           git -c http.extraHeader="Authorization: Basic $(printf 'ci:%s' "$TOKEN" | base64 -w0)" \
               fetch -q --depth 1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$GITHUB_SHA"
           git checkout -q FETCH_HEAD
       - run: >
-          trivy fs --scanners vuln,secret,misconfig --severity HIGH,CRITICAL
-          --ignore-unfixed --exit-code 1 --skip-dirs target --skip-dirs dist .
+          nix-shell .config/shell.nix --run "trivy fs --scanners vuln,secret,misconfig
+          --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --skip-dirs target --skip-dirs dist ."
 
   package:
-    needs: image
-    runs-on: container
-    container:
-      image: ${{ needs.image.outputs.ref }}
-      credentials:
-        username: ci
-        password: ${{ secrets.PACKAGES_TOKEN || github.token }}
+    runs-on: builder
     steps:
       - name: Checkout
         env:
@@ -124,23 +78,18 @@ jobs:
           git -c http.extraHeader="Authorization: Basic $(printf 'ci:%s' "$TOKEN" | base64 -w0)" \
               fetch -q --depth 1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$GITHUB_SHA"
           git checkout -q FETCH_HEAD
-      - run: make package
+      - run: nix-shell .config/shell.nix --run "make package"
       - name: Publish
         # (a pull request runs its own code: no secret)
         if: github.event_name != 'pull_request'
         env:
           TOKEN: ${{ secrets.PACKAGES_TOKEN || github.token }}
-        run: make publish
+        run: nix-shell .config/shell.nix --run "make publish"
 
   release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [image, check, trivy, package]
-    runs-on: container
-    container:
-      image: ${{ needs.image.outputs.ref }}
-      credentials:
-        username: ci
-        password: ${{ secrets.PACKAGES_TOKEN || github.token }}
+    needs: [check, trivy, package]
+    runs-on: builder
     env:
       PUSH_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
       TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.PACKAGES_TOKEN || github.token }}
@@ -156,11 +105,11 @@ jobs:
           git checkout -q -B main FETCH_HEAD
           git config user.name emb-tm-ci
           git config user.email "ci@${GITHUB_SERVER_URL#*://}"
-      - run: make release
+      - run: nix-shell .config/shell.nix --run "make release"
       - name: Package, push and publish the release
         run: |
           tag=$(git tag --points-at HEAD 'v*' | head -n 1)
           [ -n "$tag" ] || exit 0
-          make package
+          nix-shell .config/shell.nix --run "make package"
           git push -q --atomic origin HEAD:refs/heads/main "refs/tags/$tag"
-          make publish
+          nix-shell .config/shell.nix --run "make publish"

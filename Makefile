@@ -38,6 +38,8 @@ ABOUT := $(T)/cargo-about-0.9.2/bin/cargo-about
 CLIFF := $(T)/git-cliff-2.14.2/bin/git-cliff
 # The AppImage: appimagetool and the runtime it embeds (x86_64), checksummed.
 APPIMAGETOOL := $(T)/appimagetool-1.9.1
+# (a NixOS host runs the AppImage through appimage-run: .config/shell.nix)
+APPIMAGE_RUN ?=
 APPIMAGETOOL_URL := https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage
 APPIMAGETOOL_SHA := ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0
 RUNTIME := $(T)/appimage-runtime-20251108
@@ -131,7 +133,7 @@ package: build security $(ABOUT) $(APPIMAGETOOL) $(RUNTIME)
 	ln -s usr/bin/emb-tm $(REL)/AppDir/AppRun
 	cp web/emb-tm.desktop $(REL)/AppDir/
 	cp web/icon.svg $(REL)/AppDir/emb-tm.svg
-	ARCH=$(shell uname -m) APPIMAGE_EXTRACT_AND_RUN=1 $(APPIMAGETOOL) --no-appstream --runtime-file $(RUNTIME) \
+	ARCH=$(shell uname -m) APPIMAGE_EXTRACT_AND_RUN=1 $(APPIMAGE_RUN) $(APPIMAGETOOL) --no-appstream --runtime-file $(RUNTIME) \
 		$(REL)/AppDir $(REL)/emb-tm-$(VERSION)-$(shell uname -m).AppImage
 	cp target/sbom/emb-tm.cdx.json $(REL)/emb-tm-$(VERSION).cdx.json
 	awk '/^## \[/ { f = index($$0, "[$(VERSION)]") } f' CHANGELOG.md > $(REL)/NOTES.md

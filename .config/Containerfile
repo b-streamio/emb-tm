@@ -2,8 +2,9 @@
 #
 # The emb-tm build environment: Rust with its wasm32 and musl targets and
 # every pinned tool of the Makefile, the AppImage ones included, in
-# /opt/emb-tm/tools. `make image` builds it locally; the CI builds it once
-# per change (tag: hash of this file and the Makefile) and runs its jobs in it.
+# /opt/emb-tm/tools. `make image` builds it locally (tag: hash of this file
+# and the Makefile). The CI's Nix builder uses the same tools from
+# .config/shell.nix, which takes its Rust version from the FROM line below.
 #
 #   make image && podman run --rm -v "$PWD:/w:Z" -w /w emb-tm-build:<tag> make package
 FROM docker.io/library/rust:1.99.1-trixie

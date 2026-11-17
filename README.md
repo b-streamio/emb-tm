@@ -95,8 +95,8 @@ project, so either file opens again.
 
 ## Develop
 
-Use the devcontainer (`.devcontainer/`), or the build environment the CI uses: `make image`, then
-run any target below in it. Outside it, the first build installs the pinned tools into
+Use the devcontainer (`.devcontainer/`), or the build environment: `make image`, then run any
+target below in it; on a Nix host, `nix-shell .config/shell.nix` (what the CI uses). Outside it, the first build installs the pinned tools into
 `target/tools/`, nothing system-wide.
 
     make build      # the PWA (dist/) and the static program with it inside
