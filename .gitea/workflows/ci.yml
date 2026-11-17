@@ -28,6 +28,11 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: Publish this release again where it is missing (vX.Y.Z)
+        required: false
+        default: ''
 
 env:
   CARGO_TERM_COLOR: always
@@ -100,8 +105,12 @@ jobs:
           TOKEN: ${{ secrets.PACKAGES_TOKEN || github.token }}
         run: nix-shell .config/shell.nix --run "make publish"
 
+  # Run by hand with a tag (workflow_dispatch, input `tag`), it publishes
+  # that release again where it is missing (the forge, GitHub): no new version.
   release:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: >
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && inputs.tag != '')
     needs: [check, trivy, package]
     runs-on: builder
     steps:
@@ -110,6 +119,7 @@ jobs:
       - name: Checkout
         env:
           TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
         run: |
           # (the token reaches git through this step's environment only: never
           # written to .git/config, never an argument)
@@ -117,26 +127,29 @@ jobs:
               GIT_CONFIG_VALUE_0="Authorization: Basic $(printf 'ci:%s' "$TOKEN" | base64 -w0)"
           git init -q .
           git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
-          git fetch -q --tags origin "$GITHUB_SHA"
+          ref=${TAG:+refs/tags/$TAG}
+          git fetch -q --tags origin "${ref:-$GITHUB_SHA}"
           git checkout -q -B main FETCH_HEAD
           git config user.name emb-tm-ci
           git config user.email "ci@${GITHUB_SERVER_URL#*://}"
           # (a newer commit on main releases in its own run: this one stops)
-          if [ "$(git ls-remote origin refs/heads/main | cut -f1)" != "$GITHUB_SHA" ]; then
+          if [ -z "$TAG" ] && [ "$(git ls-remote origin refs/heads/main | cut -f1)" != "$GITHUB_SHA" ]; then
             echo "main has moved on since $GITHUB_SHA: its own run releases."
             touch .no-release
           fi
       - name: Version, CHANGELOG.md and tag
         id: version
+        env:
+          TAG: ${{ inputs.tag }}
         run: |
           [ ! -e .no-release ] || exit 0
-          nix-shell .config/shell.nix --run "make release"
+          if [ -z "$TAG" ]; then nix-shell .config/shell.nix --run "make release"; fi
           echo "tag=$(git tag --points-at HEAD 'v*' | head -n 1)" >> "$GITHUB_OUTPUT"
       - name: Package
         if: steps.version.outputs.tag != ''
         run: nix-shell .config/shell.nix --run "make package"
       - name: Push the release commit and tag
-        if: steps.version.outputs.tag != ''
+        if: steps.version.outputs.tag != '' && github.event_name == 'push'
         env:
           TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
           TAG: ${{ steps.version.outputs.tag }}
