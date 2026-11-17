@@ -169,9 +169,9 @@ publish: ## (CI) Upload the release files to the forge's packages, and the relea
 	[ -n "$$tag" ] || { pkg=emb-tm-dev; version=$$(echo "$${GITHUB_REF_NAME:-local}" | tr / -)-$$(git rev-parse --short=12 HEAD); }; \
 	url="$${GITHUB_SERVER_URL%/}/api/packages/$${GITHUB_REPOSITORY%%/*}/generic/$$pkg/$$version"; \
 	cd $(REL); for f in $(ASSETS); do \
-		code=$$(auth | curl -sS -K - -o /dev/null -w '%{http_code}' -X PUT --upload-file "$$f" "$$url/$$f"); \
+		code=$$(auth | curl -sS -K - -o ../publish.out -w '%{http_code}' -X PUT --upload-file "$$f" "$$url/$$f"); \
 		case $$code in 201) echo "published $$pkg/$$version/$$f" ;; 409) echo "already there: $$f" ;; \
-			*) echo "$$f: HTTP $$code" >&2; exit 1 ;; esac; \
+			*) echo "$$f: HTTP $$code: $$(head -c 500 ../publish.out)" >&2; exit 1 ;; esac; \
 	done; \
 	[ -n "$$tag" ] || exit 0; \
 	api="$${GITHUB_SERVER_URL%/}/api/v1/repos/$$GITHUB_REPOSITORY/releases"; \
