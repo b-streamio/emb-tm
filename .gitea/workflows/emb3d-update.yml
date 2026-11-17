@@ -18,9 +18,11 @@ jobs:
         env:
           TOKEN: ${{ github.token }}
         run: |
+          # (the token reaches git through this step's environment only)
+          export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraHeader \
+              GIT_CONFIG_VALUE_0="Authorization: Basic $(printf 'ci:%s' "$TOKEN" | base64 -w0)"
           git init -q .
-          git -c http.extraHeader="Authorization: Basic $(printf 'ci:%s' "$TOKEN" | base64 -w0)" \
-              fetch -q --depth 1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$GITHUB_SHA"
+          git fetch -q --depth 1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$GITHUB_SHA"
           git checkout -q FETCH_HEAD
       - name: Check emb3d.mitre.org
         run: |

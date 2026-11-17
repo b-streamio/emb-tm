@@ -41,8 +41,11 @@ jobs:
         env:
           TOKEN: ${{ github.token }}
         run: |
+          # (the token reaches git through this step's environment only: never
+          # written to .git/config, never an argument)
+          export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraHeader \
+              GIT_CONFIG_VALUE_0="Authorization: Basic $(printf 'ci:%s' "$TOKEN" | base64 -w0)"
           git init -q .
-          git config http.extraHeader "Authorization: Basic $(printf 'ci:%s' "$TOKEN" | base64 -w0)"
           if [ -n "$GITHUB_BASE_REF" ]; then
             git fetch -q "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" \
                 "+refs/heads/$GITHUB_BASE_REF:refs/remotes/origin/$GITHUB_BASE_REF" "$GITHUB_SHA"
@@ -61,15 +64,20 @@ jobs:
         env:
           TOKEN: ${{ github.token }}
         run: |
+          # (the token reaches git through this step's environment only: never
+          # written to .git/config, never an argument)
+          export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraHeader \
+              GIT_CONFIG_VALUE_0="Authorization: Basic $(printf 'ci:%s' "$TOKEN" | base64 -w0)"
           git init -q .
-          git -c http.extraHeader="Authorization: Basic $(printf 'ci:%s' "$TOKEN" | base64 -w0)" \
-              fetch -q --depth 1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$GITHUB_SHA"
+          git fetch -q --depth 1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$GITHUB_SHA"
           git checkout -q FETCH_HEAD
       - run: >
           nix-shell .config/shell.nix --run "trivy fs --scanners vuln,secret,misconfig
           --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --skip-dirs target --skip-dirs dist
           --skip-files .config/Containerfile ."
 
+  # A secret reaches only the step that needs it, never one that builds or
+  # runs third-party code (make package, the dependencies' build scripts).
   package:
     runs-on: builder
     steps:
@@ -77,9 +85,12 @@ jobs:
         env:
           TOKEN: ${{ github.token }}
         run: |
+          # (the token reaches git through this step's environment only: never
+          # written to .git/config, never an argument)
+          export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraHeader \
+              GIT_CONFIG_VALUE_0="Authorization: Basic $(printf 'ci:%s' "$TOKEN" | base64 -w0)"
           git init -q .
-          git -c http.extraHeader="Authorization: Basic $(printf 'ci:%s' "$TOKEN" | base64 -w0)" \
-              fetch -q --depth 1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$GITHUB_SHA"
+          git fetch -q --depth 1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$GITHUB_SHA"
           git checkout -q FETCH_HEAD
       - run: nix-shell .config/shell.nix --run "make package"
       - name: Publish
@@ -93,35 +104,55 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [check, trivy, package]
     runs-on: builder
-    env:
-      PUSH_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
-      TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.PACKAGES_TOKEN || github.token }}
     steps:
       # (the history and the tags: the version comes from the commits since
       # the last tag)
       - name: Checkout
+        env:
+          TOKEN: ${{ github.token }}
         run: |
+          # (the token reaches git through this step's environment only: never
+          # written to .git/config, never an argument)
+          export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraHeader \
+              GIT_CONFIG_VALUE_0="Authorization: Basic $(printf 'ci:%s' "$TOKEN" | base64 -w0)"
           git init -q .
-          git config http.extraHeader "Authorization: Basic $(printf 'ci:%s' "$PUSH_TOKEN" | base64 -w0)"
           git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
           git fetch -q --tags origin "$GITHUB_SHA"
           git checkout -q -B main FETCH_HEAD
           git config user.name emb-tm-ci
           git config user.email "ci@${GITHUB_SERVER_URL#*://}"
-      # (a newer commit on main releases in its own run: this one stops)
-      - name: Version, CHANGELOG.md and tag
-        run: |
+          # (a newer commit on main releases in its own run: this one stops)
           if [ "$(git ls-remote origin refs/heads/main | cut -f1)" != "$GITHUB_SHA" ]; then
-            echo "main has moved on since $GITHUB_SHA: its own run releases."; exit 0
+            echo "main has moved on since $GITHUB_SHA: its own run releases."
+            touch .no-release
           fi
+      - name: Version, CHANGELOG.md and tag
+        id: version
+        run: |
+          [ ! -e .no-release ] || exit 0
           nix-shell .config/shell.nix --run "make release"
-      - name: Package, push and publish the release
+          echo "tag=$(git tag --points-at HEAD 'v*' | head -n 1)" >> "$GITHUB_OUTPUT"
+      - name: Package
+        if: steps.version.outputs.tag != ''
+        run: nix-shell .config/shell.nix --run "make package"
+      - name: Push the release commit and tag
+        if: steps.version.outputs.tag != ''
+        env:
+          TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          # (the token reaches git through this step's environment only: never
+          # written to .git/config, never an argument)
+          export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraHeader \
+              GIT_CONFIG_VALUE_0="Authorization: Basic $(printf 'ci:%s' "$TOKEN" | base64 -w0)"
+          git push -q --atomic origin HEAD:refs/heads/main "refs/tags/$TAG"
+      - name: Publish on the forge
+        if: steps.version.outputs.tag != ''
+        env:
+          TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.PACKAGES_TOKEN || github.token }}
+        run: nix-shell .config/shell.nix --run "make publish"
+      - name: Publish on GitHub
+        if: steps.version.outputs.tag != ''
         env:
           GH_RELEASE_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
-        run: |
-          tag=$(git tag --points-at HEAD 'v*' | head -n 1)
-          [ -n "$tag" ] || exit 0
-          nix-shell .config/shell.nix --run "make package"
-          git push -q --atomic origin HEAD:refs/heads/main "refs/tags/$tag"
-          nix-shell .config/shell.nix --run "make publish"
-          nix-shell .config/shell.nix --run "make github"
+        run: nix-shell .config/shell.nix --run "make github"
