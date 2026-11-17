@@ -162,7 +162,8 @@ jobs:
       - name: Publish on the forge
         if: steps.version.outputs.tag != ''
         env:
-          TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.PACKAGES_TOKEN || github.token }}
+          TOKEN: ${{ secrets.PACKAGES_TOKEN || github.token }}
+          REPO_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
         run: nix-shell .config/shell.nix --run "make publish"
       - name: Publish on GitHub
         if: steps.version.outputs.tag != ''

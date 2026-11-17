@@ -163,7 +163,9 @@ release: $(CLIFF) ## When the commits since the last tag call for it: version, C
 # runs on (Gitea API: GITHUB_SERVER_URL, GITHUB_REPOSITORY, TOKEN): a tagged
 # HEAD into the package emb-tm, with a release of the tag; any other build
 # into emb-tm-dev as <branch>-<commit>. Files already there are kept. TOKEN
-# reaches curl on its standard input, never as an argument.
+# writes the packages, REPO_TOKEN (default TOKEN) the release: a packages-only
+# token may not create releases. They reach curl on its standard input,
+# never as an argument.
 publish: ## (CI) Upload the release files to the forge's packages, and the release of a tagged HEAD
 	@: "$${TOKEN:?the token that writes packages}" "$${GITHUB_SERVER_URL:?}" "$${GITHUB_REPOSITORY:?}"
 	@set -e; auth() { printf 'header = "Authorization: token %s"\n' "$$TOKEN"; }; \
@@ -176,10 +178,13 @@ publish: ## (CI) Upload the release files to the forge's packages, and the relea
 			*) echo "$$f: HTTP $$code: $$(head -c 500 ../publish.out)" >&2; exit 1 ;; esac; \
 	done; \
 	[ -n "$$tag" ] || exit 0; \
+	TOKEN=$${REPO_TOKEN:-$$TOKEN}; \
 	api="$${GITHUB_SERVER_URL%/}/api/v1/repos/$$GITHUB_REPOSITORY/releases"; \
 	if auth | curl -fsS -K - -o /dev/null "$$api/tags/$$tag" 2>/dev/null; then echo "release $$tag already there"; exit 0; fi; \
-	id=$$(auth | curl -fsS -K - -H 'Content-Type: application/json' -X POST --data-binary @release.json "$$api" \
-		| python3 -c 'import json, sys; print(json.load(sys.stdin)["id"])'); \
+	code=$$(auth | curl -sS -K - -o ../publish.out -w '%{http_code}' -H 'Content-Type: application/json' \
+		-X POST --data-binary @release.json "$$api"); \
+	[ "$$code" = 201 ] || { echo "release $$tag: HTTP $$code: $$(head -c 500 ../publish.out)" >&2; exit 1; }; \
+	id=$$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["id"])' ../publish.out); \
 	for f in $(ASSETS); do \
 		auth | curl -fsS -K - -o /dev/null -F "attachment=@$$f" "$$api/$$id/assets?name=$$f"; echo "attached $$f"; \
 	done
